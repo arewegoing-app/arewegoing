@@ -174,8 +174,8 @@ export default async function CalendarPage({
         >
           Moshtix
         </a>
-        . Click any title to view the ticket page. Spotted a wrong date? Open the event &amp;
-        hit &quot;Refresh from source&quot;.
+        . Tap an unclaimed gig&apos;s title to view tickets. Spotted a wrong date? Open the event
+        and hit &quot;Refresh from source&quot;.
       </footer>
     </div>
   );
@@ -207,6 +207,16 @@ function EventCard({
                   <Link href={`/gigs/e/${event.slug}`} className="hover:underline">
                     {event.title}
                   </Link>
+                ) : event.ticketUrl ? (
+                  <a
+                    href={event.ticketUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline"
+                    aria-label={`${event.title} — view tickets (opens in new tab)`}
+                  >
+                    {event.title}
+                  </a>
                 ) : (
                   event.title
                 )}

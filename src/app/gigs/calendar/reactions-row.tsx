@@ -23,10 +23,11 @@ export function CalendarReactions({ eventId }: { eventId: string }) {
         <Button
           key={kind}
           type="button"
-          size="sm"
+          size="default"
           variant="outline"
           disabled={pending}
           aria-label={label}
+          className="min-h-[36px]"
           onClick={() =>
             startTransition(async () => {
               await setBuyerReaction({ eventId, kind });
