@@ -21,15 +21,24 @@ export function extractJsonLd(html: string): unknown[] {
   for (const m of html.matchAll(SCRIPT_RE)) {
     const raw = m[1].trim();
     if (!raw) continue;
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) blocks.push(...parsed);
-      else blocks.push(parsed);
-    } catch {
-      // ignore malformed
-    }
+    const parsed = parseTolerant(raw);
+    if (parsed === undefined) continue;
+    if (Array.isArray(parsed)) blocks.push(...parsed);
+    else blocks.push(parsed);
   }
   return blocks;
+}
+
+/**
+ * JSON.parse with one fallback pass: some sites (Under the Radar) embed
+ * unescaped control characters inside string values, which strict JSON
+ * rejects. Stripping CR/LF/TAB doesn't change semantic meaning for the
+ * fields we read (title, date, venue) and recovers an otherwise valid blob.
+ */
+function parseTolerant(raw: string): unknown {
+  try { return JSON.parse(raw); } catch {/* fall through */}
+  try { return JSON.parse(raw.replace(/[\r\n\t]+/g, ' ')); } catch {/* fall through */}
+  return undefined;
 }
 
 export function findEvent(blocks: unknown[]): JsonLdEvent | null {

@@ -161,15 +161,15 @@ export const knownEvents: SeedEvent[] = [
     priceLow: 55,
   },
 
-  // Under the Radar — Afters-hosted gigs where the source page doesn't expose
-  // structured date metadata. Best-guess values pending an updated parser.
+  // Under the Radar — Afters-hosted gigs now parse correctly after the JSON-LD
+  // tolerant-parse fix. Values audited 2026-05-25.
   {
     source: 'undertheradar',
     sourceUrl: 'https://www.undertheradar.co.nz/gig/102719/Breaking-Beats-X-Frederick-Crew.utr',
     title: 'Breaking Beats x Frederick Crew',
     venue: 'Afters.',
     city: 'Wellington',
-    startsAtUTC: '2026-06-19T10:00:00.000Z',
+    startsAtUTC: '2026-06-06T10:00:00.000Z',
     seriesName: 'Breaking Beats',
   },
   {
@@ -178,7 +178,6 @@ export const knownEvents: SeedEvent[] = [
     title: 'Ill Truth (UK)',
     venue: 'Afters.',
     city: 'Wellington',
-    startsAtUTC: '2026-07-25T10:00:00.000Z',
-    priceLow: 50,
+    startsAtUTC: '2026-06-19T09:00:00.000Z',
   },
 ];
