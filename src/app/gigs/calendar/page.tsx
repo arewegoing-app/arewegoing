@@ -8,6 +8,8 @@ import { getReactionTallies } from '../lib/discovery/reactions';
 import { dedupeEvents } from '../lib/discovery/dedupe';
 import { CalendarReactions } from './reactions-row';
 import { ClaimForm } from './claim-form';
+import { WelcomeCard } from './welcome-card';
+import { cookies } from 'next/headers';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -27,6 +29,8 @@ export default async function CalendarPage({
   const session = await auth();
   const signedIn = !!session?.user?.id;
   const sp = await searchParams;
+  const cookieStore = await cookies();
+  const welcomeDismissed = cookieStore.get('gigs_welcome_dismissed')?.value === '1';
 
   const now = new Date();
   const ninetyDaysOut = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
@@ -94,6 +98,8 @@ export default async function CalendarPage({
           </Link>
         )}
       </header>
+
+      <WelcomeCard dismissed={welcomeDismissed} />
 
       {sp.reaction && (
         <div
