@@ -128,6 +128,14 @@ export async function applyPledgeToken(token: string): Promise<PledgeTokenResult
       .update(rsvps)
       .set({ pledgeState: 'pledged', pledgedAmount: call.pledgeAmount, pledgedAt: new Date(), updatedAt: new Date() })
       .where(eq(rsvps.eventInviteId, invite.id));
+
+    // Slice 7b: optional deposit hold. DEPOSIT_AMOUNT_CENTS=0 or unset skips.
+    const depositCents = parseInt(process.env.DEPOSIT_AMOUNT_CENTS ?? '0', 10);
+    if (depositCents > 0) {
+      const { holdDeposit } = await import('../payments/actions');
+      await holdDeposit({ eventInviteId: invite.id, finalCallId: call.id, amountCents: depositCents });
+    }
+
     return { ok: true, action: 'confirmed', alreadyConsumed: false };
   }
 

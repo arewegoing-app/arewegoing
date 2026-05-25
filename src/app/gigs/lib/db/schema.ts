@@ -230,6 +230,101 @@ export const eventFeedback = pgTable('event_feedback', {
 
 export type FeedbackRow = typeof eventFeedback.$inferSelect;
 
+// ---------------------------------------------------------------------------
+// Slice 6a — Artist subscriptions
+// ---------------------------------------------------------------------------
+
+export const artists = pgTable('artists', {
+  id: id(),
+  songkickId: text('songkick_id'),
+  name: text('name').notNull(),
+  normalizedName: text('normalized_name').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const artistSubscriptions = pgTable('artist_subscriptions', {
+  id: id(),
+  artistId: text('artist_id').notNull().references(() => artists.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  anonId: text('anon_id'),
+  email: text('email'),
+  notifiedThroughAt: timestamp('notified_through_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  uniqActor: uniqueIndex('artist_subs_actor').on(t.artistId, t.userId, t.anonId),
+}));
+
+export const eventArtistLinks = pgTable('event_artist_links', {
+  id: id(),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  artistId: text('artist_id').notNull().references(() => artists.id, { onDelete: 'cascade' }),
+}, (t) => ({
+  uniqEventArtist: uniqueIndex('event_artist_links_event_artist').on(t.eventId, t.artistId),
+}));
+
+export type Artist = typeof artists.$inferSelect;
+export type ArtistSubscription = typeof artistSubscriptions.$inferSelect;
+export type EventArtistLink = typeof eventArtistLinks.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Slice 7b — Deposit holds
+// ---------------------------------------------------------------------------
+
+export const depositHoldStateEnum = pgEnum('deposit_hold_state', ['held', 'captured', 'released', 'failed']);
+
+export const depositHolds = pgTable('deposit_holds', {
+  id: id(),
+  finalCallId: text('final_call_id').notNull().references(() => finalCalls.id, { onDelete: 'cascade' }),
+  eventInviteId: text('event_invite_id').notNull().references(() => eventInvites.id, { onDelete: 'cascade' }),
+  amountCents: integer('amount_cents').notNull(),
+  state: depositHoldStateEnum('state').notNull().default('held'),
+  stripePaymentIntentId: text('stripe_payment_intent_id'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  capturedAt: timestamp('captured_at'),
+  releasedAt: timestamp('released_at'),
+}, (t) => ({
+  uniqCallInvite: uniqueIndex('deposit_holds_call_invite').on(t.finalCallId, t.eventInviteId),
+}));
+
+export type DepositHold = typeof depositHolds.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Slice 7 — Multi-group circles
+// ---------------------------------------------------------------------------
+
+/**
+ * Named address-book group owned by a buyer (user or anon).
+ * The default "My friends" group is auto-created on first interaction.
+ */
+export const groups = pgTable('groups', {
+  id: id(),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
+  ownerUserId: text('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),
+  anonOwnerId: text('anon_owner_id'),
+  city: text('city').notNull().default('Wellington'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+/**
+ * Membership join table — one row per (group, recipient) pair.
+ * role defaults to 'member'; reserved for future admin/co-organiser roles.
+ */
+export const groupMembers = pgTable('group_members', {
+  id: id(),
+  groupId: text('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
+  recipientId: text('recipient_id').notNull().references(() => recipients.id, { onDelete: 'cascade' }),
+  role: text('role').notNull().default('member'),
+  addedAt: timestamp('added_at').notNull().defaultNow(),
+}, (t) => ({
+  uniqGroupRecipient: uniqueIndex('group_members_group_recipient').on(t.groupId, t.recipientId),
+}));
+
+export type Group = typeof groups.$inferSelect;
+export type GroupMember = typeof groupMembers.$inferSelect;
+
+// ---------------------------------------------------------------------------
+
 export type User = typeof users.$inferSelect;
 export type Recipient = typeof recipients.$inferSelect;
 export type Event = typeof events.$inferSelect;

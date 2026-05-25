@@ -198,6 +198,10 @@ export async function applyResaleClaimToken(token: string): Promise<ClaimResaleR
     .set({ pledgeState: 'replaced', updatedAt: new Date() })
     .where(eq(rsvps.eventInviteId, listing.originalInviteId));
 
+  // Slice 7b: resale claim filled the slot → release the original bailer's hold.
+  const { releaseDeposit } = await import('../payments/actions');
+  void releaseDeposit(listing.originalInviteId);
+
   return { ok: true, eventSlug: event.slug, alreadyClaimed: false };
 }
 
@@ -206,7 +210,16 @@ export async function expireStaleListings(now: Date = new Date()): Promise<{ exp
     .update(resaleListings)
     .set({ state: 'expired' })
     .where(and(eq(resaleListings.state, 'open'), lt(resaleListings.expiresAt, now))!)
-    .returning({ id: resaleListings.id });
+    .returning({ id: resaleListings.id, originalInviteId: resaleListings.originalInviteId });
+
+  // Slice 7b: unclaimed expired listings → capture the original bailer's hold.
+  if (expired.length > 0) {
+    const { captureBail } = await import('../payments/actions');
+    for (const listing of expired) {
+      void captureBail(listing.originalInviteId);
+    }
+  }
+
   return { expired: expired.length };
 }
 

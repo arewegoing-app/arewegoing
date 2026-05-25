@@ -229,3 +229,68 @@ create table if not exists event_feedback (
   responded_at timestamp
 );
 create unique index if not exists event_feedback_event_actor on event_feedback(event_id, event_invite_id, anon_id);
+
+-- Slice 6a: Artist subscriptions
+create table if not exists artists (
+  id text primary key,
+  songkick_id text,
+  name text not null,
+  normalized_name text not null,
+  created_at timestamp not null default now()
+);
+
+create table if not exists artist_subscriptions (
+  id text primary key,
+  artist_id text not null references artists(id) on delete cascade,
+  user_id text references users(id) on delete cascade,
+  anon_id text,
+  email text,
+  notified_through_at timestamp,
+  created_at timestamp not null default now()
+);
+create unique index if not exists artist_subs_actor on artist_subscriptions(artist_id, user_id, anon_id);
+
+create table if not exists event_artist_links (
+  id text primary key,
+  event_id text not null references events(id) on delete cascade,
+  artist_id text not null references artists(id) on delete cascade
+);
+create unique index if not exists event_artist_links_event_artist on event_artist_links(event_id, artist_id);
+
+-- Slice 7b: Deposit holds
+do $$ begin
+  create type deposit_hold_state as enum ('held', 'captured', 'released', 'failed');
+exception when duplicate_object then null; end $$;
+
+create table if not exists deposit_holds (
+  id text primary key,
+  final_call_id text not null references final_calls(id) on delete cascade,
+  event_invite_id text not null references event_invites(id) on delete cascade,
+  amount_cents integer not null,
+  state deposit_hold_state not null default 'held',
+  stripe_payment_intent_id text,
+  created_at timestamp not null default now(),
+  captured_at timestamp,
+  released_at timestamp
+);
+create unique index if not exists deposit_holds_call_invite on deposit_holds(final_call_id, event_invite_id);
+
+-- Slice 7: Multi-group circles
+create table if not exists groups (
+  id text primary key,
+  slug text not null unique,
+  name text not null,
+  owner_user_id text references users(id) on delete cascade,
+  anon_owner_id text,
+  city text not null default 'Wellington',
+  created_at timestamp not null default now()
+);
+
+create table if not exists group_members (
+  id text primary key,
+  group_id text not null references groups(id) on delete cascade,
+  recipient_id text not null references recipients(id) on delete cascade,
+  role text not null default 'member',
+  added_at timestamp not null default now()
+);
+create unique index if not exists group_members_group_recipient on group_members(group_id, recipient_id);
