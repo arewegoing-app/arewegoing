@@ -118,6 +118,21 @@ create table if not exists pledge_commitments (
 create unique index if not exists pledge_commitments_call_invite on pledge_commitments(final_call_id, event_invite_id);
 
 do $$ begin
+  create type promo_status as enum ('not_asked', 'asked', 'got_code', 'declined');
+exception when duplicate_object then null; end $$;
+
+create table if not exists promo_outreach (
+  id text primary key,
+  event_id text not null unique references events(id) on delete cascade,
+  status promo_status not null default 'not_asked',
+  code text,
+  asked_at timestamp,
+  resolved_at timestamp,
+  notes text,
+  updated_at timestamp not null default now()
+);
+
+do $$ begin
   create type resale_state as enum ('open', 'claimed', 'expired');
 exception when duplicate_object then null; end $$;
 

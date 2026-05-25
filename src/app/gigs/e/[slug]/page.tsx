@@ -9,11 +9,13 @@ import {
   finalCalls,
   owed,
   pledgeCommitments,
+  promoOutreach,
   purchases,
   recipients,
   resaleListings,
   rsvps,
 } from '@/app/gigs/lib/db/schema';
+import { PromoPanel } from './promo-panel';
 import { InviteForm } from './invite-form';
 import { FinalCallForm } from './final-call-form';
 import { OwedDashboard } from './owed-dashboard';
@@ -102,6 +104,8 @@ export default async function EventDetailPage({
     .select()
     .from(resaleListings)
     .where(and(eq(resaleListings.eventId, event.id), eq(resaleListings.state, 'open'))!);
+
+  const [promo] = await db.select().from(promoOutreach).where(eq(promoOutreach.eventId, event.id)).limit(1);
 
   const rsvpByInvite = new Map(
     (await db
@@ -192,6 +196,12 @@ export default async function EventDetailPage({
           </CardContent>
         </Card>
       )}
+
+      <PromoPanel
+        eventId={event.id}
+        initialStatus={promo?.status ?? 'not_asked'}
+        initialCode={promo?.code ?? null}
+      />
 
       {dashboardRows.length > 0 && <OwedDashboard rows={dashboardRows} totals={totals} />}
 

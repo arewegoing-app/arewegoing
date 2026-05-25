@@ -118,6 +118,21 @@ export const pledgeCommitments = pgTable('pledge_commitments', {
 export type FinalCall = typeof finalCalls.$inferSelect;
 export type PledgeCommitment = typeof pledgeCommitments.$inferSelect;
 
+export const promoStatusEnum = pgEnum('promo_status', ['not_asked', 'asked', 'got_code', 'declined']);
+
+export const promoOutreach = pgTable('promo_outreach', {
+  id: id(),
+  eventId: text('event_id').notNull().unique().references(() => events.id, { onDelete: 'cascade' }),
+  status: promoStatusEnum('status').notNull().default('not_asked'),
+  code: text('code'),
+  askedAt: timestamp('asked_at'),
+  resolvedAt: timestamp('resolved_at'),
+  notes: text('notes'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export type PromoOutreach = typeof promoOutreach.$inferSelect;
+
 export const resaleStateEnum = pgEnum('resale_state', ['open', 'claimed', 'expired']);
 
 export const resaleListings = pgTable('resale_listings', {

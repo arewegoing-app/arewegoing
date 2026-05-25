@@ -3,8 +3,9 @@ import { and, asc, gte, lte, or, isNull, eq } from 'drizzle-orm';
 import { CheckCircle2Icon, EyeIcon, PlusIcon, TicketIcon, XCircleIcon } from 'lucide-react';
 import { auth } from '../lib/auth/auth';
 import { db, ensureMigrated } from '../lib/db/client';
-import { events } from '../lib/db/schema';
+import { events, resaleListings } from '../lib/db/schema';
 import { getReactionTallies } from '../lib/discovery/reactions';
+import { sql } from 'drizzle-orm';
 import { CalendarReactions } from './reactions-row';
 import { ClaimForm } from './claim-form';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +51,19 @@ export default async function CalendarPage({
 
 
   const tallies = await getReactionTallies(upcoming.map((e) => e.id));
+
+  // Count active resale listings per event in one query.
+  const eventIds = upcoming.map((e) => e.id);
+  const resaleCounts = new Map<string, number>();
+  if (eventIds.length > 0) {
+    const rows = await db
+      .select({ eventId: resaleListings.eventId, count: sql<number>`count(*)::int` })
+      .from(resaleListings)
+      .where(sql`${resaleListings.state} = 'open' and ${resaleListings.eventId} in ${eventIds}`)
+      .groupBy(resaleListings.eventId);
+    for (const r of rows) resaleCounts.set(r.eventId, Number(r.count));
+  }
+
   const grouped = groupByWeek(upcoming);
 
   return (
@@ -95,7 +109,7 @@ export default async function CalendarPage({
             </h2>
             <ul className="space-y-3">
               {items.map((e) => (
-                <EventCard key={e.id} event={e} tally={tallies.get(e.id)} />
+                <EventCard key={e.id} event={e} tally={tallies.get(e.id)} resaleCount={resaleCounts.get(e.id) ?? 0} />
               ))}
             </ul>
           </section>
@@ -108,11 +122,13 @@ export default async function CalendarPage({
 function EventCard({
   event,
   tally,
+  resaleCount,
 }: {
   event: EventRow;
   tally:
     | { interested: number; down: number; cant: number; pledge_1: number; pledge_2: number }
     | undefined;
+  resaleCount: number;
 }) {
   const t = tally ?? { interested: 0, down: 0, cant: 0, pledge_1: 0, pledge_2: 0 };
   const downCount = t.down + t.pledge_1 + t.pledge_2;
@@ -148,11 +164,14 @@ function EventCard({
                   : ' · TBD'}
                 {event.priceLow ? ` · from $${event.priceLow}` : ''}
               </p>
-              {event.seriesName && (
-                <Badge variant="secondary" className="mt-1">
-                  {event.seriesName}
-                </Badge>
-              )}
+              <div className="mt-1 flex flex-wrap gap-1">
+                {event.seriesName && <Badge variant="secondary">{event.seriesName}</Badge>}
+                {resaleCount > 0 && (
+                  <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                    🎟️ {resaleCount} resale {resaleCount === 1 ? 'ticket' : 'tickets'}
+                  </Badge>
+                )}
+              </div>
             </div>
             <ReactionTally tally={t} />
           </div>
