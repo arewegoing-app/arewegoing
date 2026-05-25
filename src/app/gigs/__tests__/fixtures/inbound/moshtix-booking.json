@@ -1,0 +1,7 @@
+{
+  "from": "Moshtix <notifications@moshtix.com>",
+  "to": "oli@example.com",
+  "subject": "Booking Confirmation And Tickets - Order #56789",
+  "text": "Your booking is confirmed!\n\nEvent: Star Time featuring DJ Koze\nDate: Friday 21 March 2025\nVenue: San Fran, Wellington\n\n1 x Standard Ticket — $30.00\nTotal: $30.00\n\nOrder #56789\n\nView your booking: https://www.moshtix.com.au/v2/event/star-time/56789\n\nSee you there!",
+  "html": "<html><body><p>Your booking is confirmed!</p><img src=\"https://cdn.moshtix.com/events/star-time.jpg\" alt=\"Star Time at San Fran\"><p>Event: Star Time featuring DJ Koze</p><p>Date: Friday 21 March 2025</p><p>Venue: San Fran, Wellington</p><p>1 x Standard Ticket — $30.00</p><p>Total: $30.00</p><p>Order #56789</p><p><a href=\"https://www.moshtix.com.au/v2/event/star-time/56789\">View your booking</a></p></body></html>"
+}

@@ -1,0 +1,7 @@
+{
+  "from": "Ticketek <confirmation@ticketek.co.nz>",
+  "to": "oli@example.com",
+  "subject": "Ticketek New Zealand Purchase Confirmation",
+  "text": "Dear Oli,\n\nThank you for your purchase.\n\nTicketek New Zealand Purchase Confirmation\n\nEvent: Fleetwood Mac Tribute Night\nVenue: TSB Arena\nDate: Saturday 7 June 2025\n\n1 x Reserved Seat — NZD 89\nTotal: NZD 89\n\nIf you have any questions please contact us at https://www.ticketek.co.nz/help\n\nThank you,\nTicketek New Zealand",
+  "html": "<html><body><p>Dear Oli,</p><p><strong>Ticketek New Zealand Purchase Confirmation</strong></p><p>Event: Fleetwood Mac Tribute Night</p><p>Venue: TSB Arena</p><p>Date: Saturday 7 June 2025</p><p>1 x Reserved Seat — NZD 89</p><p>Total: NZD 89</p><p><a href=\"https://www.ticketek.co.nz/help\">Contact us</a></p></body></html>"
+}

@@ -1,0 +1,7 @@
+{
+  "from": "Ticket Fairy <support@ticketfairy.com>",
+  "to": "oli@example.com",
+  "subject": "Order Confirmation for Midweek Melters 003",
+  "text": "Hi Oli,\n\nOrder Confirmation for Midweek Melters 003\n\nThank you for your purchase!\n\nEvent details:\nMidweek Melters 003\nVenue: Laundry Bar\nDate: Wednesday 23 April 2025\n\n1 x General Admission — USD 22\nTotal: USD 22\n\nView your order: https://www.ticketfairy.com/event/midweek-melters-003\n\nSee you there!\nTicket Fairy",
+  "html": "<html><body><p>Hi Oli,</p><p><strong>Order Confirmation for Midweek Melters 003</strong></p><p>Venue: Laundry Bar</p><p>Date: Wednesday 23 April 2025</p><p>1 x General Admission — USD 22</p><p><a href=\"https://www.ticketfairy.com/event/midweek-melters-003\">View your order</a></p></body></html>"
+}

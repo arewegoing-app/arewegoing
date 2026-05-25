@@ -1,0 +1,7 @@
+{
+  "from": "Under The Radar <info@undertheradar.co.nz>",
+  "to": "oli@example.com",
+  "subject": "Your Ticket From UnderTheRadar",
+  "text": "Hi Oli,\n\nYour Ticket From UnderTheRadar\n\nEvent Lacuna Presents: Eden Burns At The Gods\nVenue The Gods Paramount, Wellington\nWhen Saturday 3 May 2025\n\n1 x General Admission — $25\nTotal: $25\n\nView event: https://www.undertheradar.co.nz/gig/12345/Lacuna-Presents-Eden-Burns-At-The-Gods.utr\n\nSee you there!\nUnderTheRadar",
+  "html": "<html><body><p>Hi Oli,</p><p><strong>Your Ticket From UnderTheRadar</strong></p><p>Event Lacuna Presents: Eden Burns At The Gods</p><p>Venue The Gods Paramount, Wellington</p><p>When Saturday 3 May 2025</p><p>1 x General Admission — $25</p><p><a href=\"https://www.undertheradar.co.nz/gig/12345/Lacuna-Presents-Eden-Burns-At-The-Gods.utr\">View event</a></p></body></html>"
+}

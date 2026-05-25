@@ -1,0 +1,7 @@
+{
+  "from": "Meow <noreply@meow.flicket.co.nz>",
+  "to": "oli@example.com",
+  "subject": "Your order has been confirmed! MCW-4821 - BYRON THE AQUARIUS (US)",
+  "text": "Hi Oli,\n\nYour order has been confirmed! MCW-4821 - BYRON THE AQUARIUS (US)\n\nYou have purchased the following:\n1 x General Admission — NZD 55\n\nTotal: NZD 55\n\nEvent: BYRON THE AQUARIUS (US)\nVenue: Meow, 9 Edward St, Wellington\nDate: Thursday 10 April 2025, 8:00 PM\n\nView your order: https://meow.flicket.co.nz/event/byron-the-aquarius\n\nSee you there!\nMeow",
+  "html": "<html><body><p>Hi Oli,</p><p>Your order has been confirmed! MCW-4821 - BYRON THE AQUARIUS (US)</p><p>1 x General Admission — NZD 55</p><p>Venue: Meow, 9 Edward St, Wellington</p><p><a href=\"https://meow.flicket.co.nz/event/byron-the-aquarius\">View your order</a></p></body></html>"
+}
