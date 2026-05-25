@@ -16,6 +16,7 @@ import { auth } from '../auth/auth';
 import { signToken, verifyToken } from '../tokens/token-service';
 import { sendEmail } from '../notifications/email';
 import { finalCallEmail } from '../notifications/templates-pledge';
+import { log } from '../log';
 
 const APP_URL = process.env.GIGS_APP_URL ?? 'http://localhost:3000';
 const FINAL_CALL_TTL_SEC = 60 * 60 * 24 * 7;
@@ -89,16 +90,25 @@ export type PledgeTokenResult =
 
 export async function applyPledgeToken(token: string): Promise<PledgeTokenResult> {
   const verified = verifyToken(token);
-  if (!verified.ok) return { ok: false, reason: verified.reason };
+  if (!verified.ok) {
+    log.warn({ reason: verified.reason }, 'pledge.rejected');
+    return { ok: false, reason: verified.reason };
+  }
   const { act, rid, eid } = verified.payload;
-  if (act !== 'pledge.confirm' && act !== 'pledge.drop') return { ok: false, reason: 'unsupported_action' };
+  if (act !== 'pledge.confirm' && act !== 'pledge.drop') {
+    log.warn({ rid, eid, act, reason: 'unsupported_action' }, 'pledge.rejected');
+    return { ok: false, reason: 'unsupported_action' };
+  }
 
   const [invite] = await db
     .select()
     .from(eventInvites)
     .where(and(eq(eventInvites.recipientId, rid), eq(eventInvites.eventId, eid)))
     .limit(1);
-  if (!invite) return { ok: false, reason: 'no_invite' };
+  if (!invite) {
+    log.warn({ rid, eid, act, reason: 'no_invite' }, 'pledge.rejected');
+    return { ok: false, reason: 'no_invite' };
+  }
 
   const [call] = await db
     .select()
@@ -106,17 +116,31 @@ export async function applyPledgeToken(token: string): Promise<PledgeTokenResult
     .where(and(eq(finalCalls.eventId, eid), eq(finalCalls.status, 'pending')))
     .orderBy(sql`triggered_at desc`)
     .limit(1);
-  if (!call) return { ok: false, reason: 'no_active_call' };
+  if (!call) {
+    log.warn({ rid, eid, inviteId: invite.id, reason: 'no_active_call' }, 'pledge.rejected');
+    return { ok: false, reason: 'no_active_call' };
+  }
 
   const [commitment] = await db
     .select()
     .from(pledgeCommitments)
     .where(and(eq(pledgeCommitments.finalCallId, call.id), eq(pledgeCommitments.eventInviteId, invite.id)))
     .limit(1);
-  if (!commitment) return { ok: false, reason: 'not_invited_to_call' };
+  if (!commitment) {
+    log.warn(
+      { rid, eid, inviteId: invite.id, finalCallId: call.id, reason: 'not_invited_to_call' },
+      'pledge.rejected',
+    );
+    return { ok: false, reason: 'not_invited_to_call' };
+  }
 
   if (commitment.state !== 'asked') {
-    return { ok: true, action: commitment.state === 'confirmed' ? 'confirmed' : 'dropped', alreadyConsumed: true };
+    const action = commitment.state === 'confirmed' ? 'confirmed' : 'dropped';
+    log.info(
+      { rid, eid, inviteId: invite.id, finalCallId: call.id, action, alreadyConsumed: true },
+      'pledge.applied',
+    );
+    return { ok: true, action, alreadyConsumed: true };
   }
 
   if (act === 'pledge.confirm') {
@@ -136,6 +160,10 @@ export async function applyPledgeToken(token: string): Promise<PledgeTokenResult
       await holdDeposit({ eventInviteId: invite.id, finalCallId: call.id, amountCents: depositCents });
     }
 
+    log.info(
+      { rid, eid, inviteId: invite.id, finalCallId: call.id, action: 'confirmed' },
+      'pledge.applied',
+    );
     return { ok: true, action: 'confirmed', alreadyConsumed: false };
   }
 
@@ -147,6 +175,10 @@ export async function applyPledgeToken(token: string): Promise<PledgeTokenResult
     .update(rsvps)
     .set({ status: 'maybe', updatedAt: new Date() })
     .where(eq(rsvps.eventInviteId, invite.id));
+  log.info(
+    { rid, eid, inviteId: invite.id, finalCallId: call.id, action: 'dropped' },
+    'pledge.applied',
+  );
   return { ok: true, action: 'dropped', alreadyConsumed: false };
 }
 

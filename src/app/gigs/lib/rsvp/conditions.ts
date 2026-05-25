@@ -10,6 +10,7 @@ import {
   rsvpConditions,
   rsvps,
 } from '../db/schema';
+import { log } from '../log';
 
 const conditionInput = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('min_going'), value: z.coerce.number().int().positive() }),
@@ -143,6 +144,9 @@ export async function evaluateEventConditions(eventId: string): Promise<{ promot
     }
   }
 
+  if (promoted > 0 || demoted > 0) {
+    log.info({ eid: eventId, promoted, demoted }, 'conditions.evaluated');
+  }
   return { promoted, demoted };
 }
 

@@ -23,12 +23,15 @@ export default async function MyEventsPage() {
       <div className="space-y-4">
         <h1 className="text-2xl font-semibold tracking-tight">Your gigs</h1>
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Nothing here yet. Open the{' '}
-            <Link href="/gigs" className="text-foreground underline">
-              calendar
-            </Link>{' '}
-            and rally a gig — we&apos;ll remember it for you.
+          <CardContent className="mx-auto max-w-md py-12 text-center">
+            <h2 className="text-base font-medium">No gigs claimed yet</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Pick a gig from the calendar and hit &quot;Ready to rally&quot;. We&apos;ll remember
+              it on this device.
+            </p>
+            <Link href="/gigs" className={cn(buttonVariants(), 'mt-4')}>
+              <CalendarIcon aria-hidden="true" /> Open the calendar
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -78,12 +81,14 @@ export default async function MyEventsPage() {
 
       {mine.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            You haven&apos;t rallied any gigs yet. Tap{' '}
-            <Link href="/gigs" className="text-foreground underline">
-              the calendar
-            </Link>{' '}
-            and claim one.
+          <CardContent className="mx-auto max-w-md py-12 text-center">
+            <h2 className="text-base font-medium">No gigs claimed yet</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Anything you rally or create from the calendar will land here.
+            </p>
+            <Link href="/gigs" className={cn(buttonVariants(), 'mt-4')}>
+              <CalendarIcon aria-hidden="true" /> Open the calendar
+            </Link>
           </CardContent>
         </Card>
       ) : (

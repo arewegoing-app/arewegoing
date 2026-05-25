@@ -11,6 +11,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { depositHolds, finalCalls, pledgeCommitments } from '../db/schema';
 import { getStripeAdapter } from './stripe-stub';
+import { log } from '../log';
 
 // ---------------------------------------------------------------------------
 // holdDeposit
@@ -68,6 +69,10 @@ export async function holdDeposit(input: HoldDepositInput): Promise<HoldDepositR
       })
       .returning();
 
+    log.info(
+      { finalCallId, eventInviteId, holdId: hold.id, amountCents },
+      'deposit.held',
+    );
     return { ok: true, holdId: hold.id, alreadyHeld: false };
   } catch (err) {
     // Record failure but don't block the pledge flow.
@@ -81,6 +86,7 @@ export async function holdDeposit(input: HoldDepositInput): Promise<HoldDepositR
         stripePaymentIntentId: null,
       })
       .onConflictDoNothing();
+    log.error({ err, finalCallId, eventInviteId, amountCents }, 'deposit.hold.failed');
     return { ok: false, reason: err instanceof Error ? err.message : String(err) };
   }
 }
@@ -129,8 +135,10 @@ export async function captureBail(eventInviteId: string): Promise<CaptureBailRes
       .set({ state: 'captured', capturedAt: new Date() })
       .where(eq(depositHolds.id, hold.id));
 
+    log.info({ eventInviteId, holdId: hold.id }, 'deposit.captured');
     return { ok: true, holdId: hold.id, alreadyCaptured: false };
   } catch (err) {
+    log.error({ err, eventInviteId, holdId: hold.id }, 'deposit.capture.failed');
     return { ok: false, reason: err instanceof Error ? err.message : String(err) };
   }
 }
@@ -178,8 +186,10 @@ export async function releaseDeposit(eventInviteId: string): Promise<ReleaseDepo
       .set({ state: 'released', releasedAt: new Date() })
       .where(eq(depositHolds.id, hold.id));
 
+    log.info({ eventInviteId, holdId: hold.id }, 'deposit.released');
     return { ok: true, holdId: hold.id, alreadyReleased: false };
   } catch (err) {
+    log.error({ err, eventInviteId, holdId: hold.id }, 'deposit.release.failed');
     return { ok: false, reason: err instanceof Error ? err.message : String(err) };
   }
 }

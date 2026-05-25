@@ -3,6 +3,7 @@ import { db } from '../db/client';
 import { eventInvites, rsvps, emailTokens } from '../db/schema';
 import { verifyToken } from '../tokens/token-service';
 import { evaluateEventConditions } from './conditions';
+import { log } from '../log';
 
 export type RsvpResult =
   | { ok: true; status: 'going' | 'maybe' | 'out'; alreadyConsumed: boolean }
@@ -16,16 +17,26 @@ const actionToStatus: Record<string, 'going' | 'maybe' | 'out'> = {
 
 export async function applyTokenRsvp(token: string): Promise<RsvpResult> {
   const verified = verifyToken(token);
-  if (!verified.ok) return { ok: false, reason: verified.reason };
-  const status = actionToStatus[verified.payload.act];
-  if (!status) return { ok: false, reason: 'unsupported_action' };
+  if (!verified.ok) {
+    log.warn({ reason: verified.reason }, 'rsvp.rejected');
+    return { ok: false, reason: verified.reason };
+  }
+  const { rid, eid, act } = verified.payload;
+  const status = actionToStatus[act];
+  if (!status) {
+    log.warn({ rid, eid, act, reason: 'unsupported_action' }, 'rsvp.rejected');
+    return { ok: false, reason: 'unsupported_action' };
+  }
 
   const [invite] = await db
     .select()
     .from(eventInvites)
-    .where(and(eq(eventInvites.recipientId, verified.payload.rid), eq(eventInvites.eventId, verified.payload.eid)))
+    .where(and(eq(eventInvites.recipientId, rid), eq(eventInvites.eventId, eid)))
     .limit(1);
-  if (!invite) return { ok: false, reason: 'no_invite' };
+  if (!invite) {
+    log.warn({ rid, eid, act, reason: 'no_invite' }, 'rsvp.rejected');
+    return { ok: false, reason: 'no_invite' };
+  }
 
   // Scope the consumed-check to the specific action so a recipient who clicked
   // "Yes" yesterday can still change to "Maybe" via a later email link.
@@ -34,9 +45,9 @@ export async function applyTokenRsvp(token: string): Promise<RsvpResult> {
     .from(emailTokens)
     .where(
       and(
-        eq(emailTokens.recipientId, verified.payload.rid),
-        eq(emailTokens.eventId, verified.payload.eid),
-        eq(emailTokens.action, verified.payload.act),
+        eq(emailTokens.recipientId, rid),
+        eq(emailTokens.eventId, eid),
+        eq(emailTokens.action, act),
       ),
     )
     .limit(1);
@@ -58,9 +69,9 @@ export async function applyTokenRsvp(token: string): Promise<RsvpResult> {
   await db
     .insert(emailTokens)
     .values({
-      recipientId: verified.payload.rid,
-      eventId: verified.payload.eid,
-      action: verified.payload.act,
+      recipientId: rid,
+      eventId: eid,
+      action: act,
       expiresAt: new Date(verified.payload.exp * 1000),
       consumedAt: new Date(),
     })
@@ -71,5 +82,6 @@ export async function applyTokenRsvp(token: string): Promise<RsvpResult> {
   // Any rsvp change can affect conditional invites elsewhere on this event.
   await evaluateEventConditions(invite.eventId);
 
+  log.info({ rid, eid, act, inviteId: invite.id, status }, 'rsvp.applied');
   return { ok: true, status, alreadyConsumed: false };
 }

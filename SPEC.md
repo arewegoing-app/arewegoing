@@ -117,6 +117,17 @@ Each module under `lib/` owns its tables. Other modules read/write only through 
 - **No mocking of internal modules.** Stub external services only (Resend, Songkick, ticketing source HTML via fixtures).
 - **Coverage target**: every public server action + every token route has a Playwright spec. Pure functions (token sign/verify, condition evaluator) also unit-tested.
 
+## 5b. Logging and observability
+
+- **Logger**: pino at `src/app/gigs/lib/log.ts`. Pretty output via `pino-pretty` in dev (`NODE_ENV !== 'production'`); JSON to stdout in prod, which Vercel captures.
+- **Levels**: default is `info`. Override with `LOG_LEVEL` env var (`debug`, `info`, `warn`, `error`).
+- **Redaction**: `token`, `password`, `secret`, `authorization`, `cookie`, and the named secret env vars are auto-redacted from log payloads.
+- **Action events**: each server action emits one structured log on success (`rsvp.applied`, `bail.requested`, `claim.applied`, `pledge.applied`, `purchase.recorded`, ...) and one on rejection (`*.rejected`) with `{ reason }`.
+- **Client errors**: the `/gigs/error.tsx` boundary POSTs to `/gigs/api/log` so client-side render errors land in the same pino stream as `client.error`.
+- **Where to read logs**:
+  - Local: just run `pnpm dev`, watch the terminal.
+  - Vercel preview/prod: `vercel logs <deployment-url> --no-follow` or open the deployment in the Vercel dashboard → Logs tab. Filter by message name (e.g. `rsvp.applied`) to follow a user's path.
+
 ## 6. Boundaries
 
 ### Always do

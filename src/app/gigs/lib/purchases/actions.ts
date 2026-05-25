@@ -18,6 +18,7 @@ import {
 import { sendEmail } from '../notifications/email';
 import { lockConfirmationEmail } from '../notifications/templates-lock';
 import { signToken } from '../tokens/token-service';
+import { log } from '../log';
 
 const APP_URL = process.env.GIGS_APP_URL ?? 'http://localhost:3000';
 const BAIL_TTL_SEC = 60 * 60 * 24 * 30;
@@ -103,6 +104,16 @@ export async function recordPurchase(input: z.input<typeof recordInput>) {
     await sendEmail({ to: recipient.email, subject: tmpl.subject, html: tmpl.html, text: tmpl.text });
   }
 
+  log.info(
+    {
+      eid: event.id,
+      purchaseId: purchase.id,
+      locked: pledged.length,
+      splitCents,
+      totalCents: parsed.totalCents,
+    },
+    'purchase.recorded',
+  );
   return { purchaseId: purchase.id, locked: pledged.length, splitCents };
 }
 
@@ -127,5 +138,6 @@ export async function markPaid(input: z.input<typeof markPaidInput>) {
     .set({ paid: parsed.paid ? 1 : 0, paidAt: parsed.paid ? new Date() : null })
     .where(eq(owed.id, parsed.owedId));
 
+  log.info({ owedId: parsed.owedId, paid: parsed.paid }, 'owed.markPaid');
   return { ok: true };
 }

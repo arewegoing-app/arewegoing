@@ -131,8 +131,17 @@ export default async function CalendarPage({
 
       {dedupedUpcoming.length === 0 && dedupedTbd.length === 0 && (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No upcoming events yet. Try refreshing.
+          <CardContent className="mx-auto max-w-md py-12 text-center">
+            <h2 className="text-base font-medium">No gigs in the next 90 days</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              The ingest job hasn&apos;t pulled anything fresh yet. Check back in a few hours, or
+              add one yourself.
+            </p>
+            {signedIn && (
+              <Link href="/gigs/new" className={cn(buttonVariants(), 'mt-4')}>
+                <PlusIcon aria-hidden="true" /> Create an event
+              </Link>
+            )}
           </CardContent>
         </Card>
       )}

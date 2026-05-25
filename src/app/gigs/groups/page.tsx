@@ -24,8 +24,12 @@ export default async function GroupsPage() {
 
       {myGroups.length === 0 ? (
         <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            No groups yet. Create one below.
+          <CardContent className="mx-auto max-w-md py-12 text-center">
+            <h2 className="text-base font-medium">No groups yet</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Groups bundle friends together so you can invite a whole crew in one tap. Name
+              your first one below.
+            </p>
           </CardContent>
         </Card>
       ) : (

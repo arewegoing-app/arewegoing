@@ -104,8 +104,15 @@ export default async function OwedSummaryPage() {
 
       {rows.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Nothing owed to you yet. Once you record a purchase on an event, the splits show up here.
+          <CardContent className="mx-auto max-w-md py-12 text-center">
+            <h2 className="text-base font-medium">Nobody owes you anything</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Record a ticket purchase on an event you&apos;re organizing. The split per friend
+              shows up here.
+            </p>
+            <Link href="/gigs/organizing" className={cn(buttonVariants(), 'mt-4')}>
+              Find an event to invoice
+            </Link>
           </CardContent>
         </Card>
       ) : (

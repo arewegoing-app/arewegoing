@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureMigrated } from '@/app/gigs/lib/db/client';
 import { dispatchArtistNotifications } from '@/app/gigs/lib/artists/dispatch';
+import { log } from '../../../lib/log';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,9 +11,14 @@ export async function GET(req: NextRequest) {
     const got =
       req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ??
       req.nextUrl.searchParams.get('s');
-    if (got !== required) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    if (got !== required) {
+      log.warn({ job: 'artists' }, 'cron.unauthorized');
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
   }
+  log.info({ job: 'artists' }, 'cron.artists.start');
   await ensureMigrated();
   const result = await dispatchArtistNotifications();
+  log.info({ ...result }, 'cron.artists.done');
   return NextResponse.json(result);
 }

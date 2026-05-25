@@ -11,6 +11,7 @@ import {
   resaleListings,
   rsvps,
 } from '../db/schema';
+import { log } from '../log';
 
 const input = z.object({
   eventId: z.string().min(1),
@@ -26,7 +27,10 @@ export async function anonClaimResale(raw: z.input<typeof input>): Promise<AnonC
   const parsed = input.parse(raw);
 
   const [event] = await db.select().from(events).where(eq(events.id, parsed.eventId)).limit(1);
-  if (!event) return { ok: false, reason: 'no_event' };
+  if (!event) {
+    log.warn({ eid: parsed.eventId, reason: 'no_event' }, 'anon-claim.rejected');
+    return { ok: false, reason: 'no_event' };
+  }
 
   // Find an open listing for this event. First-come, first-served.
   const [listing] = await db
@@ -34,8 +38,14 @@ export async function anonClaimResale(raw: z.input<typeof input>): Promise<AnonC
     .from(resaleListings)
     .where(and(eq(resaleListings.eventId, event.id), eq(resaleListings.state, 'open'))!)
     .limit(1);
-  if (!listing) return { ok: false, reason: 'no_open_listing' };
-  if (listing.expiresAt.getTime() < Date.now()) return { ok: false, reason: 'expired' };
+  if (!listing) {
+    log.warn({ eid: event.id, reason: 'no_open_listing' }, 'anon-claim.rejected');
+    return { ok: false, reason: 'no_open_listing' };
+  }
+  if (listing.expiresAt.getTime() < Date.now()) {
+    log.warn({ eid: event.id, listingId: listing.id, reason: 'expired' }, 'anon-claim.rejected');
+    return { ok: false, reason: 'expired' };
+  }
 
   const normalisedEmail = parsed.claimerEmail.toLowerCase();
   const ownerScope = event.ownerUserId
@@ -82,6 +92,10 @@ export async function anonClaimResale(raw: z.input<typeof input>): Promise<AnonC
 
   // Idempotency: if this person already claimed THIS listing, return success.
   if (listing.claimedByInviteId === invite.id) {
+    log.info(
+      { eid: event.id, inviteId: invite.id, listingId: listing.id, alreadyClaimed: true },
+      'anon-claim.applied',
+    );
     return { ok: true, eventSlug: event.slug, alreadyClaimed: true };
   }
 
@@ -92,7 +106,13 @@ export async function anonClaimResale(raw: z.input<typeof input>): Promise<AnonC
     .set({ state: 'claimed', claimedByInviteId: invite.id, claimedAt: new Date() })
     .where(and(eq(resaleListings.id, listing.id), eq(resaleListings.state, 'open'))!)
     .returning({ id: resaleListings.id });
-  if (claimed.length === 0) return { ok: false, reason: 'already_taken' };
+  if (claimed.length === 0) {
+    log.warn(
+      { eid: event.id, listingId: listing.id, reason: 'already_taken' },
+      'anon-claim.rejected',
+    );
+    return { ok: false, reason: 'already_taken' };
+  }
 
   await db
     .update(owed)
@@ -112,5 +132,14 @@ export async function anonClaimResale(raw: z.input<typeof input>): Promise<AnonC
     .set({ pledgeState: 'replaced', updatedAt: new Date() })
     .where(eq(rsvps.eventInviteId, listing.originalInviteId));
 
+  log.info(
+    {
+      eid: event.id,
+      inviteId: invite.id,
+      listingId: listing.id,
+      originalInviteId: listing.originalInviteId,
+    },
+    'anon-claim.applied',
+  );
   return { ok: true, eventSlug: event.slug, alreadyClaimed: false };
 }

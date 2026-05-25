@@ -7,17 +7,25 @@ import { applyPledgeToken } from '@/app/gigs/lib/rsvp/pledge';
 import { applyBailRequestToken, applyResaleClaimToken } from '@/app/gigs/lib/rsvp/resale';
 import { applyReactionToken } from '@/app/gigs/lib/discovery/reactions';
 import { verifyToken } from '@/app/gigs/lib/tokens/token-service';
+import { log } from '../lib/log';
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('t');
-  if (!token) return NextResponse.redirect(new URL('/gigs', req.url));
+  if (!token) {
+    log.warn({ reason: 'no_token' }, 'r.action.rejected');
+    return NextResponse.redirect(new URL('/gigs', req.url));
+  }
   const v = verifyToken(token);
-  if (!v.ok) return NextResponse.redirect(new URL(`/gigs/r/error?reason=${v.reason}`, req.url));
+  if (!v.ok) {
+    log.warn({ reason: v.reason }, 'r.action.rejected');
+    return NextResponse.redirect(new URL(`/gigs/r/error?reason=${v.reason}`, req.url));
+  }
 
   if (v.payload.act === 'feedback.submit') {
     const ratingParam = req.nextUrl.searchParams.get('rating');
     const rating = ratingParam !== null ? parseInt(ratingParam, 10) : null;
     if (rating === null || isNaN(rating) || rating < 0 || rating > 5) {
+      log.warn({ act: v.payload.act, reason: 'malformed' }, 'r.action.rejected');
       return NextResponse.redirect(new URL('/gigs/r/error?reason=malformed', req.url));
     }
 
@@ -53,41 +61,68 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
     return NextResponse.redirect(new URL('/gigs/feedback/thanks', req.url));
   }
 
   if (v.payload.act.startsWith('react.')) {
     const result = await applyReactionToken(token);
-    if (!result.ok) return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+    if (!result.ok) {
+      log.warn({ act: v.payload.act, reason: result.reason }, 'r.action.rejected');
+      return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+    }
+    log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
     return NextResponse.redirect(new URL(`/gigs/calendar?reaction=${result.kind}&event=${result.eventSlug}`, req.url));
   }
 
   if (v.payload.act === 'bail.claim') {
     const result = await applyResaleClaimToken(token);
-    if (!result.ok) return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+    if (!result.ok) {
+      log.warn({ act: v.payload.act, reason: result.reason }, 'r.action.rejected');
+      return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+    }
+    log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
     const qs = `claimed=1${result.alreadyClaimed ? '&replay=1' : ''}`;
     return NextResponse.redirect(new URL(`/gigs/e/${result.eventSlug}?${qs}`, req.url));
   }
 
   if (v.payload.act === 'bail.request') {
     const result = await applyBailRequestToken(token);
-    if (!result.ok) return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+    if (!result.ok) {
+      log.warn({ act: v.payload.act, reason: result.reason }, 'r.action.rejected');
+      return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+    }
+    log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
     return NextResponse.redirect(new URL(`/gigs/dropped`, req.url));
   }
 
   const isPledge = v.payload.act === 'pledge.confirm' || v.payload.act === 'pledge.drop';
   if (isPledge) {
     const result = await applyPledgeToken(token);
-    if (!result.ok) return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+    if (!result.ok) {
+      log.warn({ act: v.payload.act, reason: result.reason }, 'r.action.rejected');
+      return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+    }
     const [event] = await db.select().from(events).where(eq(events.id, v.payload.eid)).limit(1);
-    if (!event) return NextResponse.redirect(new URL('/gigs', req.url));
+    if (!event) {
+      log.warn({ act: v.payload.act, reason: 'event_missing' }, 'r.action.rejected');
+      return NextResponse.redirect(new URL('/gigs', req.url));
+    }
+    log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
     const qs = `pledge=${result.action}${result.alreadyConsumed ? '&replay=1' : ''}`;
     return NextResponse.redirect(new URL(`/gigs/e/${event.slug}?${qs}`, req.url));
   }
 
   const result = await applyTokenRsvp(token);
-  if (!result.ok) return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+  if (!result.ok) {
+    log.warn({ act: v.payload.act, reason: result.reason }, 'r.action.rejected');
+    return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+  }
   const [event] = await db.select().from(events).where(eq(events.id, v.payload.eid)).limit(1);
-  if (!event) return NextResponse.redirect(new URL('/gigs', req.url));
+  if (!event) {
+    log.warn({ act: v.payload.act, reason: 'event_missing' }, 'r.action.rejected');
+    return NextResponse.redirect(new URL('/gigs', req.url));
+  }
+  log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
   return NextResponse.redirect(new URL(`/gigs/e/${event.slug}?status=${result.status}${result.alreadyConsumed ? '&replay=1' : ''}`, req.url));
 }

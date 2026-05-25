@@ -10,6 +10,7 @@
 import * as schema from './schema';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { log } from '../log';
 
 type Schema = typeof schema;
 
@@ -85,6 +86,7 @@ function makeHandle(): DbHandle {
 
 const handle: DbHandle = global.__gigsDbHandle ?? makeHandle();
 if (process.env.NODE_ENV !== 'production') global.__gigsDbHandle = handle;
+log.info({ provider: handle.mode }, 'db.client.init');
 
 // Drizzle exports the same chainable surface from both drivers — callers see
 // one `db` regardless of backend.
@@ -102,7 +104,7 @@ export async function ensureMigrated(): Promise<void> {
       new Promise<void>((_, reject) => setTimeout(() => reject(new Error('seed_timeout')), SEED_TIMEOUT_MS)),
     ]);
   } catch (err) {
-    console.error('[gigs] seed skipped:', err instanceof Error ? err.message : err);
+    log.warn({ err: err instanceof Error ? err.message : err }, 'db.seed.skipped');
   }
 }
 

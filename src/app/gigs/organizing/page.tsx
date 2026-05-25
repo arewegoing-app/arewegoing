@@ -37,12 +37,20 @@ export default async function OrganizingPage() {
 
       {list.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Nothing yet. Pick a gig from the{' '}
-            <Link href="/gigs" className="text-foreground underline">
-              calendar
-            </Link>{' '}
-            and hit &quot;Ready to rally&quot;, or create a new event.
+          <CardContent className="mx-auto max-w-md py-12 text-center">
+            <h2 className="text-base font-medium">You&apos;re not organizing anything yet</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Claim a gig from the calendar or create a new event. It&apos;ll show up here so you
+              can invite friends.
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Link href="/gigs" className={cn(buttonVariants({ variant: 'outline' }))}>
+                <CalendarIcon aria-hidden="true" /> Open the calendar
+              </Link>
+              <Link href="/gigs/new" className={cn(buttonVariants())}>
+                <PlusIcon aria-hidden="true" /> Create an event
+              </Link>
+            </div>
           </CardContent>
         </Card>
       ) : (

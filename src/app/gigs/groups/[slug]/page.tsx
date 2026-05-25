@@ -76,7 +76,14 @@ export default async function GroupDetailPage({
         </CardHeader>
         <CardContent>
           {memberRows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nobody in this group yet.</p>
+            <div className="mx-auto max-w-md py-8 text-center">
+              <p className="text-sm font-medium">0 friends in this group yet</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {notInGroup.length > 0
+                  ? 'Pick someone from your address book below, or add a new person.'
+                  : 'Add your first friend using the form below.'}
+              </p>
+            </div>
           ) : (
             <ul className="divide-y divide-border rounded-md border">
               {memberRows.map(({ recipient: r }) => (

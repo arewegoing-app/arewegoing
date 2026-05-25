@@ -16,6 +16,7 @@ import {
 import { signToken, verifyToken } from '../tokens/token-service';
 import { sendEmail } from '../notifications/email';
 import { resaleOfferEmail } from '../notifications/templates-resale';
+import { log } from '../log';
 
 const APP_URL = process.env.GIGS_APP_URL ?? 'http://localhost:3000';
 const CLAIM_TTL_SEC = 60 * 60 * 24 * 7; // 7 days to claim
@@ -41,7 +42,10 @@ export async function requestBail(raw: z.input<typeof requestInput>): Promise<Ba
     .innerJoin(recipients, eq(recipients.id, eventInvites.recipientId))
     .where(eq(eventInvites.id, parsed.inviteId))
     .limit(1);
-  if (!row) return { ok: false, reason: 'no_invite' };
+  if (!row) {
+    log.warn({ inviteId: parsed.inviteId, reason: 'no_invite' }, 'bail.rejected');
+    return { ok: false, reason: 'no_invite' };
+  }
 
   // Idempotency: if an open listing already exists, reuse it.
   const [existing] = await db
@@ -51,6 +55,10 @@ export async function requestBail(raw: z.input<typeof requestInput>): Promise<Ba
     .limit(1);
 
   if (!existing && row.rsvp.pledgeState !== 'locked') {
+    log.warn(
+      { inviteId: parsed.inviteId, eid: row.event.id, reason: 'not_locked' },
+      'bail.rejected',
+    );
     return { ok: false, reason: 'not_locked' };
   }
 
@@ -115,6 +123,16 @@ export async function requestBail(raw: z.input<typeof requestInput>): Promise<Ba
     offered++;
   }
 
+  log.info(
+    {
+      inviteId: parsed.inviteId,
+      eid: row.event.id,
+      listingId: listing.id,
+      offered,
+      alreadyOpen: !!existing,
+    },
+    'bail.requested',
+  );
   return { ok: true, listingId: listing.id, offered, alreadyOpen: !!existing };
 }
 
@@ -124,21 +142,41 @@ export type BailTokenResult =
 
 export async function applyBailRequestToken(token: string): Promise<BailTokenResult> {
   const verified = verifyToken(token);
-  if (!verified.ok) return { ok: false, reason: verified.reason };
-  if (verified.payload.act !== 'bail.request') return { ok: false, reason: 'unsupported_action' };
+  if (!verified.ok) {
+    log.warn({ reason: verified.reason }, 'bail.token.rejected');
+    return { ok: false, reason: verified.reason };
+  }
+  const { rid, eid, act } = verified.payload;
+  if (act !== 'bail.request') {
+    log.warn({ rid, eid, act, reason: 'unsupported_action' }, 'bail.token.rejected');
+    return { ok: false, reason: 'unsupported_action' };
+  }
 
-  const [event] = await db.select().from(events).where(eq(events.id, verified.payload.eid)).limit(1);
-  if (!event) return { ok: false, reason: 'no_event' };
+  const [event] = await db.select().from(events).where(eq(events.id, eid)).limit(1);
+  if (!event) {
+    log.warn({ rid, eid, reason: 'no_event' }, 'bail.token.rejected');
+    return { ok: false, reason: 'no_event' };
+  }
 
   const [invite] = await db
     .select()
     .from(eventInvites)
-    .where(and(eq(eventInvites.recipientId, verified.payload.rid), eq(eventInvites.eventId, event.id))!)
+    .where(and(eq(eventInvites.recipientId, rid), eq(eventInvites.eventId, event.id))!)
     .limit(1);
-  if (!invite) return { ok: false, reason: 'no_invite' };
+  if (!invite) {
+    log.warn({ rid, eid, reason: 'no_invite' }, 'bail.token.rejected');
+    return { ok: false, reason: 'no_invite' };
+  }
 
   const result = await requestBail({ inviteId: invite.id });
-  if (!result.ok) return { ok: false, reason: result.reason };
+  if (!result.ok) {
+    log.warn({ rid, eid, inviteId: invite.id, reason: result.reason }, 'bail.token.rejected');
+    return { ok: false, reason: result.reason };
+  }
+  log.info(
+    { rid, eid, inviteId: invite.id, listingId: result.listingId, alreadyOpen: result.alreadyOpen },
+    'bail.token.applied',
+  );
   return { ok: true, eventSlug: event.slug, alreadyOpen: result.alreadyOpen };
 }
 
@@ -148,22 +186,35 @@ export type ClaimResaleResult =
 
 export async function applyResaleClaimToken(token: string): Promise<ClaimResaleResult> {
   const verified = verifyToken(token);
-  if (!verified.ok) return { ok: false, reason: verified.reason };
-  if (verified.payload.act !== 'bail.claim') return { ok: false, reason: 'unsupported_action' };
+  if (!verified.ok) {
+    log.warn({ reason: verified.reason }, 'claim.rejected');
+    return { ok: false, reason: verified.reason };
+  }
+  const { rid, eid, act, lid } = verified.payload;
+  if (act !== 'bail.claim') {
+    log.warn({ rid, eid, act, reason: 'unsupported_action' }, 'claim.rejected');
+    return { ok: false, reason: 'unsupported_action' };
+  }
 
-  const [event] = await db.select().from(events).where(eq(events.id, verified.payload.eid)).limit(1);
-  if (!event) return { ok: false, reason: 'no_event' };
+  const [event] = await db.select().from(events).where(eq(events.id, eid)).limit(1);
+  if (!event) {
+    log.warn({ rid, eid, reason: 'no_event' }, 'claim.rejected');
+    return { ok: false, reason: 'no_event' };
+  }
 
   const [claimerInvite] = await db
     .select()
     .from(eventInvites)
-    .where(and(eq(eventInvites.recipientId, verified.payload.rid), eq(eventInvites.eventId, event.id))!)
+    .where(and(eq(eventInvites.recipientId, rid), eq(eventInvites.eventId, event.id))!)
     .limit(1);
-  if (!claimerInvite) return { ok: false, reason: 'no_invite' };
+  if (!claimerInvite) {
+    log.warn({ rid, eid, reason: 'no_invite' }, 'claim.rejected');
+    return { ok: false, reason: 'no_invite' };
+  }
 
   // Tokens issued after the lid migration carry the listing id; fall back to
   // the legacy "first open" lookup for older links still in flight.
-  const listingId = verified.payload.lid;
+  const listingId = lid;
   const [listing] = listingId
     ? await db
         .select()
@@ -182,16 +233,34 @@ export async function applyResaleClaimToken(token: string): Promise<ClaimResaleR
       .from(resaleListings)
       .where(and(eq(resaleListings.eventId, event.id), eq(resaleListings.claimedByInviteId, claimerInvite.id))!)
       .limit(1);
-    if (taken) return { ok: true, eventSlug: event.slug, alreadyClaimed: true };
+    if (taken) {
+      log.info(
+        { rid, eid, inviteId: claimerInvite.id, listingId: taken.id, alreadyClaimed: true },
+        'claim.applied',
+      );
+      return { ok: true, eventSlug: event.slug, alreadyClaimed: true };
+    }
+    log.warn({ rid, eid, lid, reason: 'no_open_listing' }, 'claim.rejected');
     return { ok: false, reason: 'no_open_listing' };
   }
   if (listing.state !== 'open') {
     if (listing.claimedByInviteId === claimerInvite.id) {
+      log.info(
+        { rid, eid, inviteId: claimerInvite.id, listingId: listing.id, alreadyClaimed: true },
+        'claim.applied',
+      );
       return { ok: true, eventSlug: event.slug, alreadyClaimed: true };
     }
+    log.warn(
+      { rid, eid, listingId: listing.id, reason: 'listing_unavailable' },
+      'claim.rejected',
+    );
     return { ok: false, reason: 'listing_unavailable' };
   }
-  if (listing.expiresAt.getTime() < Date.now()) return { ok: false, reason: 'expired' };
+  if (listing.expiresAt.getTime() < Date.now()) {
+    log.warn({ rid, eid, listingId: listing.id, reason: 'expired' }, 'claim.rejected');
+    return { ok: false, reason: 'expired' };
+  }
 
   // Mark listing claimed + repoint owed row + lock the claimer.
   // Race-guard: only the first concurrent claimer flips state='open' → 'claimed'.
@@ -200,7 +269,13 @@ export async function applyResaleClaimToken(token: string): Promise<ClaimResaleR
     .set({ state: 'claimed', claimedByInviteId: claimerInvite.id, claimedAt: new Date() })
     .where(and(eq(resaleListings.id, listing.id), eq(resaleListings.state, 'open'))!)
     .returning({ id: resaleListings.id });
-  if (claimedRows.length === 0) return { ok: false, reason: 'listing_unavailable' };
+  if (claimedRows.length === 0) {
+    log.warn(
+      { rid, eid, listingId: listing.id, reason: 'listing_unavailable' },
+      'claim.rejected',
+    );
+    return { ok: false, reason: 'listing_unavailable' };
+  }
   await db
     .update(owed)
     .set({ eventInviteId: claimerInvite.id, paid: 0, paidAt: null, lastRemindedAt: null })
@@ -221,6 +296,16 @@ export async function applyResaleClaimToken(token: string): Promise<ClaimResaleR
   const { releaseDeposit } = await import('../payments/actions');
   void releaseDeposit(listing.originalInviteId);
 
+  log.info(
+    {
+      rid,
+      eid,
+      inviteId: claimerInvite.id,
+      listingId: listing.id,
+      originalInviteId: listing.originalInviteId,
+    },
+    'claim.applied',
+  );
   return { ok: true, eventSlug: event.slug, alreadyClaimed: false };
 }
 
@@ -239,6 +324,9 @@ export async function expireStaleListings(now: Date = new Date()): Promise<{ exp
     }
   }
 
+  if (expired.length > 0) {
+    log.info({ expired: expired.length }, 'listings.expired');
+  }
   return { expired: expired.length };
 }
 

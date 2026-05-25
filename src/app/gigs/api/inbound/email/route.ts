@@ -5,6 +5,7 @@ import { customAlphabet } from 'nanoid';
 import { parseTicketEmail } from '@/app/gigs/lib/ingest/email-forward/parser';
 import { ensureMigrated, db } from '@/app/gigs/lib/db/client';
 import { users, events, recipients, eventInvites } from '@/app/gigs/lib/db/schema';
+import { log } from '../../../lib/log';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,11 +27,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const requiredSecret = process.env.INBOUND_SECRET;
   if (!requiredSecret) {
     if (process.env.INBOUND_AUTH_OFF !== '1') {
+      log.warn({ reason: 'inbound_not_configured' }, 'inbound.unauthorized');
       return NextResponse.json({ error: 'inbound_not_configured' }, { status: 503 });
     }
   } else {
     const provided = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
     if (provided !== requiredSecret) {
+      log.warn({ reason: 'bad_secret' }, 'inbound.unauthorized');
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     }
   }
@@ -39,11 +42,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     body = await req.json();
   } catch {
+    log.info({ reason: 'invalid_json' }, 'inbound.rejected');
     return NextResponse.json({ ok: false, reason: 'invalid_json' }, { status: 400 });
   }
 
   const parsed = inboundEmailSchema.safeParse(body);
   if (!parsed.success) {
+    log.info(
+      { reason: 'invalid_payload', keys: body && typeof body === 'object' ? Object.keys(body as object) : [] },
+      'inbound.rejected',
+    );
     return NextResponse.json(
       { ok: false, reason: 'invalid_payload', details: parsed.error.issues },
       { status: 400 },
@@ -55,6 +63,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // Parse the ticket email
   const parseResult = await parseTicketEmail(mime);
   if (!parseResult.ok) {
+    log.info(
+      { reason: parseResult.reason, subject: mime.subject, textLen: mime.text.length, htmlLen: mime.html.length },
+      'inbound.rejected',
+    );
     return NextResponse.json({ ok: false, reason: parseResult.reason });
   }
 
@@ -73,6 +85,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .limit(1);
 
   if (!user) {
+    log.info({ reason: 'unknown_sender', sender: senderAddress }, 'inbound.rejected');
     return NextResponse.json({ ok: false, reason: 'unknown_sender' });
   }
 
@@ -147,6 +160,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       set: { hasOwnTicket: 1 },
     });
 
+  log.info(
+    { from: senderAddress, subject: mime.subject, source: meta.source, eventId: eventRow.id },
+    'inbound.accepted',
+  );
   return NextResponse.json({
     ok: true,
     eventSlug: eventRow.slug,
