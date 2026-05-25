@@ -54,10 +54,12 @@ create table if not exists event_reactions (
   event_id text not null references events(id) on delete cascade,
   recipient_id text references recipients(id) on delete cascade,
   user_id text references users(id) on delete cascade,
+  anon_id text,
+  anon_name text,
   kind reaction_kind not null,
   set_at timestamp not null default now()
 );
-create unique index if not exists event_reactions_event_actor on event_reactions(event_id, recipient_id, user_id);
+create unique index if not exists event_reactions_event_actor on event_reactions(event_id, recipient_id, user_id, anon_id);
 
 create table if not exists event_invites (
   id text primary key,

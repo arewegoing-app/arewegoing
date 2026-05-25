@@ -6,6 +6,7 @@ import { db } from '../db/client';
 import { auth } from '../auth/auth';
 import { eventReactions, events } from '../db/schema';
 import { verifyToken } from '../tokens/token-service';
+import { getOrSetAnonId } from '../anon/identity';
 
 const reactionKindSchema = z.enum(['interested', 'down', 'cant', 'pledge_1', 'pledge_2']);
 export type ReactionKind = z.infer<typeof reactionKindSchema>;
@@ -17,17 +18,29 @@ const setBuyerInput = z.object({
 
 export async function setBuyerReaction(input: z.input<typeof setBuyerInput>) {
   const session = await auth();
-  if (!session?.user?.id) throw new Error('Not signed in');
   const parsed = setBuyerInput.parse(input);
 
+  // Signed-in users react as themselves. Everyone else reacts anonymously via a
+  // cookie UUID — no signin needed for the MVP.
+  if (session?.user?.id) {
+    await db
+      .insert(eventReactions)
+      .values({ eventId: parsed.eventId, userId: session.user.id, kind: parsed.kind })
+      .onConflictDoUpdate({
+        target: [eventReactions.eventId, eventReactions.recipientId, eventReactions.userId, eventReactions.anonId],
+        set: { kind: parsed.kind, setAt: new Date() },
+      });
+    return { ok: true };
+  }
+
+  const anonId = await getOrSetAnonId();
   await db
     .insert(eventReactions)
-    .values({ eventId: parsed.eventId, userId: session.user.id, kind: parsed.kind })
+    .values({ eventId: parsed.eventId, anonId, kind: parsed.kind })
     .onConflictDoUpdate({
-      target: [eventReactions.eventId, eventReactions.recipientId, eventReactions.userId],
+      target: [eventReactions.eventId, eventReactions.recipientId, eventReactions.userId, eventReactions.anonId],
       set: { kind: parsed.kind, setAt: new Date() },
     });
-
   return { ok: true };
 }
 

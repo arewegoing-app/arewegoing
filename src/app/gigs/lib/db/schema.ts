@@ -53,10 +53,12 @@ export const eventReactions = pgTable('event_reactions', {
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
   recipientId: text('recipient_id').references(() => recipients.id, { onDelete: 'cascade' }),
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  anonId: text('anon_id'),
+  anonName: text('anon_name'),
   kind: reactionKindEnum('kind').notNull(),
   setAt: timestamp('set_at').notNull().defaultNow(),
 }, (t) => ({
-  uniqEventActor: uniqueIndex('event_reactions_event_actor').on(t.eventId, t.recipientId, t.userId),
+  uniqEventActor: uniqueIndex('event_reactions_event_actor').on(t.eventId, t.recipientId, t.userId, t.anonId),
 }));
 
 export type EventReaction = typeof eventReactions.$inferSelect;

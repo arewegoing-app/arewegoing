@@ -1,7 +1,6 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { and, asc, gte, lte, or, isNull, eq } from 'drizzle-orm';
-import { CheckCircle2Icon, EyeIcon, TicketIcon, XCircleIcon } from 'lucide-react';
+import { CheckCircle2Icon, EyeIcon, PlusIcon, TicketIcon, XCircleIcon } from 'lucide-react';
 import { auth } from '../lib/auth/auth';
 import { db } from '../lib/db/client';
 import { events } from '../lib/db/schema';
@@ -9,8 +8,10 @@ import { getReactionTallies } from '../lib/discovery/reactions';
 import { CalendarReactions } from './reactions-row';
 import { PromoteToRallyForm } from './promote-form';
 import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,18 +23,24 @@ export default async function CalendarPage({
   searchParams: Promise<{ reaction?: string; event?: string }>;
 }) {
   const session = await auth();
-  if (!session?.user?.id) redirect('/gigs/signin');
+  const signedIn = !!session?.user?.id;
   const sp = await searchParams;
 
   const now = new Date();
   const ninetyDaysOut = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+  // Public surface: anyone can see discovered events (no owner) + their own
+  // events if signed in. Owned events created by other people stay private.
+  const ownershipFilter = signedIn
+    ? or(isNull(events.ownerUserId), eq(events.ownerUserId, session!.user!.id))!
+    : isNull(events.ownerUserId);
 
   const upcoming = await db
     .select()
     .from(events)
     .where(
       and(
-        or(isNull(events.ownerUserId), eq(events.ownerUserId, session.user.id))!,
+        ownershipFilter,
         gte(events.startsAt, now),
         lte(events.startsAt, ninetyDaysOut),
       )!,
@@ -45,16 +52,18 @@ export default async function CalendarPage({
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Next 90 days</h1>
           <p className="text-sm text-muted-foreground">
             Wellington gigs pulled from Humanitix, Moshtix, and Under the Radar.
           </p>
         </div>
-        <Link href="/gigs" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Your events
-        </Link>
+        {signedIn && (
+          <Link href="/gigs/new" className={cn(buttonVariants())}>
+            <PlusIcon aria-hidden="true" /> New event
+          </Link>
+        )}
       </header>
 
       {sp.reaction && (
