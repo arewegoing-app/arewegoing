@@ -145,6 +145,38 @@ export default async function CalendarPage({
           </section>
         )}
       </div>
+
+      <footer className="border-t pt-4 text-xs text-muted-foreground">
+        Listings pulled from{' '}
+        <a
+          href="https://www.undertheradar.co.nz/whatson/wellington"
+          target="_blank"
+          rel="noreferrer"
+          className="text-foreground hover:underline"
+        >
+          Under the Radar
+        </a>
+        ,{' '}
+        <a
+          href="https://events.humanitix.com"
+          target="_blank"
+          rel="noreferrer"
+          className="text-foreground hover:underline"
+        >
+          Humanitix
+        </a>
+        , and{' '}
+        <a
+          href="https://www.moshtix.co.nz"
+          target="_blank"
+          rel="noreferrer"
+          className="text-foreground hover:underline"
+        >
+          Moshtix
+        </a>
+        . Click any title to view the ticket page. Spotted a wrong date? Open the event &amp;
+        hit &quot;Refresh from source&quot;.
+      </footer>
     </div>
   );
 }
