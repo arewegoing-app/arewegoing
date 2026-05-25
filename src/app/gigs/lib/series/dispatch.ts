@@ -1,0 +1,72 @@
+import { and, eq, gt, isNotNull } from 'drizzle-orm';
+import { db } from '../db/client';
+import { events, seriesSubscriptions } from '../db/schema';
+import { sendEmail } from '../notifications/email';
+
+const APP_URL = process.env.GIGS_APP_URL ?? 'http://localhost:3000';
+
+/**
+ * Send one email per subscriber for every event created in their series since
+ * the subscriber's last notified_through_at watermark. Idempotent: running
+ * twice without a new event in between is a no-op because the watermark
+ * advances to the latest event's createdAt after each pass.
+ */
+export async function dispatchSeriesNotifications(): Promise<{ sent: number }> {
+  const subs = await db.select().from(seriesSubscriptions).where(isNotNull(seriesSubscriptions.email));
+
+  let sent = 0;
+  for (const sub of subs) {
+    const watermark = sub.notifiedThroughAt ?? new Date(0);
+    const pending = await db
+      .select()
+      .from(events)
+      .where(
+        and(eq(events.seriesName, sub.seriesName), gt(events.createdAt, watermark))!,
+      )
+      .orderBy(events.createdAt);
+
+    if (pending.length === 0) continue;
+
+    for (const ev of pending) {
+      if (!sub.email) continue;
+      const date = ev.startsAt
+        ? new Date(ev.startsAt).toLocaleString('en-NZ', {
+            timeZone: 'Pacific/Auckland',
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            hour: 'numeric',
+            minute: '2-digit',
+          })
+        : 'TBD';
+      const url = `${APP_URL}/gigs/e/${ev.slug}`;
+      const subject = `New ${sub.seriesName} event: ${ev.title}`;
+      const text = [
+        'Hey,',
+        '',
+        `A new ${sub.seriesName} gig just appeared:`,
+        ev.title,
+        ev.venue ? `at ${ev.venue}` : '',
+        date,
+        '',
+        `See it: ${url}`,
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const html = `<p>A new <strong>${escapeHtml(sub.seriesName)}</strong> gig:</p><p><strong>${escapeHtml(ev.title)}</strong>${ev.venue ? ` at ${escapeHtml(ev.venue)}` : ''}<br>${escapeHtml(date)}</p><p><a href="${url}">See it →</a></p>`;
+      await sendEmail({ to: sub.email, subject, text, html });
+      sent++;
+    }
+
+    const latestCreatedAt = pending[pending.length - 1].createdAt;
+    await db
+      .update(seriesSubscriptions)
+      .set({ notifiedThroughAt: latestCreatedAt })
+      .where(eq(seriesSubscriptions.id, sub.id));
+  }
+  return { sent };
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}

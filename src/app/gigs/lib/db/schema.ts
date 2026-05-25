@@ -92,6 +92,20 @@ export const rsvps = pgTable('rsvps', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+export const seriesSubscriptions = pgTable('series_subscriptions', {
+  id: id(),
+  seriesName: text('series_name').notNull(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  anonId: text('anon_id'),
+  email: text('email'),
+  notifiedThroughAt: timestamp('notified_through_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  uniqActor: uniqueIndex('series_subs_actor').on(t.seriesName, t.userId, t.anonId),
+}));
+
+export type SeriesSubscription = typeof seriesSubscriptions.$inferSelect;
+
 export const conditionKindEnum = pgEnum('condition_kind', ['min_going', 'price_ceiling', 'requires_promo']);
 
 export const rsvpConditions = pgTable('rsvp_conditions', {

@@ -3,12 +3,14 @@ import { and, asc, gte, lte, or, isNull, eq, sql } from 'drizzle-orm';
 import { CheckCircle2Icon, EyeIcon, PlusIcon, TicketIcon, TicketCheckIcon, XCircleIcon } from 'lucide-react';
 import { auth } from '../lib/auth/auth';
 import { db, ensureMigrated } from '../lib/db/client';
-import { events, resaleListings } from '../lib/db/schema';
+import { events, resaleListings, seriesSubscriptions } from '../lib/db/schema';
 import { getReactionTallies } from '../lib/discovery/reactions';
 import { dedupeEvents } from '../lib/discovery/dedupe';
+import { readAnonId } from '../lib/anon/identity';
 import { CalendarReactions } from './reactions-row';
 import { ClaimForm } from './claim-form';
 import { WelcomeCard } from './welcome-card';
+import { SeriesFollowButton } from './series-follow';
 import { cookies } from 'next/headers';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
@@ -31,6 +33,22 @@ export default async function CalendarPage({
   const sp = await searchParams;
   const cookieStore = await cookies();
   const welcomeDismissed = cookieStore.get('gigs_welcome_dismissed')?.value === '1';
+  const anonId = await readAnonId();
+
+  // Load this viewer's series subscriptions once so each card knows whether to
+  // show "Follow" or "Following".
+  const followedSeries = new Set<string>();
+  if (signedIn || anonId) {
+    const rows = await db
+      .select({ name: seriesSubscriptions.seriesName })
+      .from(seriesSubscriptions)
+      .where(
+        signedIn
+          ? eq(seriesSubscriptions.userId, session!.user!.id)
+          : eq(seriesSubscriptions.anonId, anonId!),
+      );
+    for (const r of rows) followedSeries.add(r.name);
+  }
 
   const now = new Date();
   const ninetyDaysOut = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
@@ -128,7 +146,13 @@ export default async function CalendarPage({
             </h2>
             <ul className="space-y-3">
               {items.map((e) => (
-                <EventCard key={e.id} event={e} tally={tallies.get(e.id)} resaleCount={resaleCounts.get(e.id) ?? 0} />
+                <EventCard
+                  key={e.id}
+                  event={e}
+                  tally={tallies.get(e.id)}
+                  resaleCount={resaleCounts.get(e.id) ?? 0}
+                  isFollowingSeries={e.seriesName ? followedSeries.has(e.seriesName) : false}
+                />
               ))}
             </ul>
           </section>
@@ -139,7 +163,13 @@ export default async function CalendarPage({
             <h2 className="mb-3 text-sm font-medium text-muted-foreground">Date TBD</h2>
             <ul className="space-y-3">
               {dedupedTbd.map((e) => (
-                <EventCard key={e.id} event={e} tally={tallies.get(e.id)} resaleCount={resaleCounts.get(e.id) ?? 0} />
+                <EventCard
+                  key={e.id}
+                  event={e}
+                  tally={tallies.get(e.id)}
+                  resaleCount={resaleCounts.get(e.id) ?? 0}
+                  isFollowingSeries={e.seriesName ? followedSeries.has(e.seriesName) : false}
+                />
               ))}
             </ul>
           </section>
@@ -185,12 +215,14 @@ function EventCard({
   event,
   tally,
   resaleCount,
+  isFollowingSeries,
 }: {
   event: EventRow;
   tally:
     | { interested: number; down: number; cant: number; pledge_1: number; pledge_2: number; have_ticket: number }
     | undefined;
   resaleCount: number;
+  isFollowingSeries: boolean;
 }) {
   const t = tally ?? { interested: 0, down: 0, cant: 0, pledge_1: 0, pledge_2: 0, have_ticket: 0 };
   const downCount = t.down + t.pledge_1 + t.pledge_2 + t.have_ticket;
@@ -236,8 +268,13 @@ function EventCard({
                   : ' · TBD'}
                 {event.priceLow ? ` · from $${event.priceLow}` : ''}
               </p>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {event.seriesName && <Badge variant="secondary">{event.seriesName}</Badge>}
+              <div className="mt-1 flex flex-wrap items-center gap-1">
+                {event.seriesName && (
+                  <>
+                    <Badge variant="secondary">{event.seriesName}</Badge>
+                    <SeriesFollowButton seriesName={event.seriesName} initialSubscribed={isFollowingSeries} />
+                  </>
+                )}
                 {resaleCount > 0 && (
                   <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
                     🎟️ {resaleCount} resale {resaleCount === 1 ? 'ticket' : 'tickets'}

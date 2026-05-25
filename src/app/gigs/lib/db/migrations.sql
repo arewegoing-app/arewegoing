@@ -97,6 +97,17 @@ create table if not exists rsvps (
   updated_at timestamp not null default now()
 );
 
+create table if not exists series_subscriptions (
+  id text primary key,
+  series_name text not null,
+  user_id text references users(id) on delete cascade,
+  anon_id text,
+  email text,
+  notified_through_at timestamp,
+  created_at timestamp not null default now()
+);
+create unique index if not exists series_subs_actor on series_subscriptions(series_name, user_id, anon_id);
+
 do $$ begin
   create type condition_kind as enum ('min_going', 'price_ceiling', 'requires_promo');
 exception when duplicate_object then null; end $$;
