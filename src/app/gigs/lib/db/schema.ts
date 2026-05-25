@@ -16,19 +16,21 @@ export const users = pgTable('users', {
 
 export const recipients = pgTable('recipients', {
   id: id(),
-  ownerUserId: text('owner_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  ownerUserId: text('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),
+  anonOwnerId: text('anon_owner_id'),
   email: text('email').notNull(),
   displayName: text('display_name').notNull(),
   preferredChannel: text('preferred_channel').notNull().default('email'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-}, (t) => ({
-  ownerEmail: uniqueIndex('recipients_owner_email').on(t.ownerUserId, t.email),
-}));
+});
 
 export const events = pgTable('events', {
   id: id(),
   slug: text('slug').notNull().unique(),
   ownerUserId: text('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),
+  anonOwnerId: text('anon_owner_id'),
+  anonOwnerName: text('anon_owner_name'),
+  anonOwnerEmail: text('anon_owner_email'),
   title: text('title').notNull(),
   venue: text('venue'),
   city: text('city').default('Wellington'),

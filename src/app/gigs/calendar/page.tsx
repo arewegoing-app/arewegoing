@@ -6,7 +6,7 @@ import { db, ensureMigrated } from '../lib/db/client';
 import { events } from '../lib/db/schema';
 import { getReactionTallies } from '../lib/discovery/reactions';
 import { CalendarReactions } from './reactions-row';
-import { PromoteToRallyForm } from './promote-form';
+import { ClaimForm } from './claim-form';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -116,7 +116,8 @@ function EventCard({
 }) {
   const t = tally ?? { interested: 0, down: 0, cant: 0, pledge_1: 0, pledge_2: 0 };
   const downCount = t.down + t.pledge_1 + t.pledge_2;
-  const readyToRally = downCount >= 3 && !event.ownerUserId;
+  const unclaimed = !event.ownerUserId && !event.anonOwnerId;
+  const readyToRally = downCount >= 3 && unclaimed;
   return (
     <li>
       <Card>
@@ -124,7 +125,7 @@ function EventCard({
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div className="min-w-0 flex-1">
               <h3 className="text-base font-medium leading-tight">
-                {event.ownerUserId ? (
+                {!unclaimed ? (
                   <Link href={`/gigs/e/${event.slug}`} className="hover:underline">
                     {event.title}
                   </Link>
@@ -171,7 +172,7 @@ function EventCard({
         </CardContent>
         {readyToRally && (
           <CardFooter>
-            <PromoteToRallyForm eventId={event.id} />
+            <ClaimForm eventId={event.id} eventTitle={event.title} />
           </CardFooter>
         )}
       </Card>

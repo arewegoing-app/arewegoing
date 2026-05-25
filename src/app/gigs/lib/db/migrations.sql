@@ -16,18 +16,21 @@ create table if not exists users (
 
 create table if not exists recipients (
   id text primary key,
-  owner_user_id text not null references users(id) on delete cascade,
+  owner_user_id text references users(id) on delete cascade,
+  anon_owner_id text,
   email text not null,
   display_name text not null,
   preferred_channel text not null default 'email',
   created_at timestamp not null default now()
 );
-create unique index if not exists recipients_owner_email on recipients(owner_user_id, email);
 
 create table if not exists events (
   id text primary key,
   slug text not null unique,
   owner_user_id text references users(id) on delete cascade,
+  anon_owner_id text,
+  anon_owner_name text,
+  anon_owner_email text,
   title text not null,
   venue text,
   city text default 'Wellington',

@@ -1,7 +1,8 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '@/app/gigs/lib/auth/auth';
-import { db } from '@/app/gigs/lib/db/client';
+import { checkEventOwner } from '@/app/gigs/lib/auth/owner';
+import { db, ensureMigrated } from '@/app/gigs/lib/db/client';
 import {
   events,
   eventInvites,
@@ -25,23 +26,26 @@ export default async function EventDetailPage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ status?: string; replay?: string; pledge?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect('/gigs/signin');
+  await ensureMigrated();
   const { slug } = await params;
   const sp = await searchParams;
 
   const [event] = await db.select().from(events).where(eq(events.slug, slug)).limit(1);
   if (!event) notFound();
-  if (event.ownerUserId !== session.user.id) {
+
+  const ownerCheck = await checkEventOwner(event);
+  if (!ownerCheck.isOwner) {
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Not your event.
+          This event is being organised by someone else. Ask them to share the calendar with you, or go to the{' '}
+          <a href="/gigs" className="text-foreground underline">calendar</a> to see what&apos;s on.
         </CardContent>
       </Card>
     );
   }
 
+  const session = await auth();
   const invitesRows = await db
     .select({ invite: eventInvites, recipient: recipients, rsvp: rsvps })
     .from(eventInvites)
@@ -49,7 +53,10 @@ export default async function EventDetailPage({
     .leftJoin(rsvps, eq(rsvps.eventInviteId, eventInvites.id))
     .where(eq(eventInvites.eventId, event.id));
 
-  const allRecipients = await db.select().from(recipients).where(eq(recipients.ownerUserId, session.user.id));
+  // Address book of recipients — load by whichever ownership the current viewer matches.
+  const allRecipients = ownerCheck.via === 'user'
+    ? await db.select().from(recipients).where(eq(recipients.ownerUserId, ownerCheck.userId!))
+    : await db.select().from(recipients).where(eq(recipients.anonOwnerId, ownerCheck.anonId!));
   const invitedIds = new Set(invitesRows.map((r) => r.recipient?.id));
   const uninvited = allRecipients.filter((r) => !invitedIds.has(r.id));
 
