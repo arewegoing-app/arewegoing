@@ -36,34 +36,9 @@ export const knownEvents: SeedEvent[] = [
     startsAtUTC: '2026-06-13T09:00:00.000Z',
     priceLow: 25,
   },
-  {
-    source: 'humanitix',
-    sourceUrl: 'https://events.humanitix.com/doc-scott-wellington',
-    title: 'Doc Scott (UK)',
-    venue: 'San Fran',
-    city: 'Wellington',
-    startsAtUTC: '2026-07-18T09:00:00.000Z',
-    priceLow: 55,
-  },
-  {
-    source: 'humanitix',
-    sourceUrl: 'https://events.humanitix.com/little-monsters-june',
-    title: 'Little Monsters DJ Present',
-    venue: 'Cuba Street Tavern',
-    city: 'Wellington',
-    startsAtUTC: '2026-06-20T09:00:00.000Z',
-    seriesName: 'Little Monsters',
-  },
-  {
-    source: 'humanitix',
-    sourceUrl: 'https://events.humanitix.com/bryan-gee-wlg',
-    title: 'Rhythm Output Presents Bryan Gee Wellington',
-    venue: 'Cuba Street Tavern',
-    city: 'Wellington',
-    startsAtUTC: '2026-08-02T09:00:00.000Z',
-    priceLow: 35,
-    seriesName: 'Rhythm Output',
-  },
+  // Doc Scott / Little Monsters / Bryan Gee all appear on both Humanitix and
+  // UTR — listed once each below via the UTR URL (richer metadata, includes
+  // the series detection). Humanitix duplicates removed to avoid double-listing.
   {
     source: 'moshtix',
     sourceUrl: 'https://www.moshtix.co.nz/v2/event/techno-night-with-valerie-ace-de/195201',

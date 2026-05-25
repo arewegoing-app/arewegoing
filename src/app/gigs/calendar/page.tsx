@@ -5,6 +5,7 @@ import { auth } from '../lib/auth/auth';
 import { db, ensureMigrated } from '../lib/db/client';
 import { events, resaleListings } from '../lib/db/schema';
 import { getReactionTallies } from '../lib/discovery/reactions';
+import { dedupeEvents } from '../lib/discovery/dedupe';
 import { CalendarReactions } from './reactions-row';
 import { ClaimForm } from './claim-form';
 import { Badge } from '@/components/ui/badge';
@@ -57,7 +58,11 @@ export default async function CalendarPage({
     .where(and(ownershipFilter, isNull(events.startsAt))!);
 
 
-  const allShown = [...upcoming, ...tbd];
+  // Same real-world gig sometimes shows up under multiple source URLs
+  // (Humanitix + Under the Radar). Collapse to one card per gig.
+  const allShown = dedupeEvents([...upcoming, ...tbd]);
+  const dedupedUpcoming = allShown.filter((e) => e.startsAt !== null);
+  const dedupedTbd = allShown.filter((e) => e.startsAt === null);
   const tallies = await getReactionTallies(allShown.map((e) => e.id));
 
   // Count active resale listings per event in one query.
@@ -72,7 +77,7 @@ export default async function CalendarPage({
     for (const r of rows) resaleCounts.set(r.eventId, Number(r.count));
   }
 
-  const grouped = groupByWeek(upcoming);
+  const grouped = groupByWeek(dedupedUpcoming);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -100,7 +105,7 @@ export default async function CalendarPage({
         </div>
       )}
 
-      {upcoming.length === 0 && tbd.length === 0 && (
+      {dedupedUpcoming.length === 0 && dedupedTbd.length === 0 && (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             No upcoming events yet. Try refreshing.
@@ -123,11 +128,11 @@ export default async function CalendarPage({
           </section>
         ))}
 
-        {tbd.length > 0 && (
+        {dedupedTbd.length > 0 && (
           <section aria-label="Events with no fixed date yet">
             <h2 className="mb-3 text-sm font-medium text-muted-foreground">Date TBD</h2>
             <ul className="space-y-3">
-              {tbd.map((e) => (
+              {dedupedTbd.map((e) => (
                 <EventCard key={e.id} event={e} tally={tallies.get(e.id)} resaleCount={resaleCounts.get(e.id) ?? 0} />
               ))}
             </ul>

@@ -18,6 +18,7 @@ import {
 import { PromoPanel } from './promo-panel';
 import { InviteForm } from './invite-form';
 import { FinalCallForm } from './final-call-form';
+import { ShareButtons } from './share-buttons';
 import { OwedDashboard } from './owed-dashboard';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -134,18 +135,28 @@ export default async function EventDetailPage({
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">{event.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {event.venue ?? '—'} ·{' '}
-          {event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', dateStyle: 'full', timeStyle: 'short' }) : 'TBD'}
-          {event.priceLow ? ` · from $${event.priceLow}` : ''}
-        </p>
-        {event.seriesName && (
-          <Badge variant="secondary" className="mt-1">
-            {event.seriesName}
-          </Badge>
-        )}
+      <header className="space-y-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{event.title}</h1>
+          <p className="text-sm text-muted-foreground">
+            {event.venue ?? '—'} ·{' '}
+            {event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', dateStyle: 'full', timeStyle: 'short' }) : 'TBD'}
+            {event.priceLow ? ` · from $${event.priceLow}` : ''}
+          </p>
+          {event.seriesName && (
+            <Badge variant="secondary" className="mt-1">
+              {event.seriesName}
+            </Badge>
+          )}
+        </div>
+        <ShareButtons
+          eventTitle={event.title}
+          eventVenue={event.venue}
+          eventDate={event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : null}
+          eventId={event.id}
+          shareUrl={`${process.env.GIGS_APP_URL ?? ''}/gigs/e/${event.slug}`}
+          showRefresh={!!(event.sourceUrl || event.ticketUrl)}
+        />
       </header>
 
       {sp.status && (
