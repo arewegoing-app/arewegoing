@@ -24,6 +24,7 @@ import { ShareButtons } from './share-buttons';
 import { OwedDashboard } from './owed-dashboard';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar } from '../../components/avatar';
 
 export default async function EventDetailPage({
   params,
@@ -267,10 +268,13 @@ export default async function EventDetailPage({
                           ? '🚪 dropped'
                           : null;
                 return (
-                  <li key={invite.id} className="flex flex-wrap justify-between gap-2 px-4 py-2 text-sm">
-                    <span>
-                      {recipient?.displayName}{' '}
-                      <span className="text-muted-foreground">({recipient?.email})</span>
+                  <li key={invite.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Avatar name={recipient?.displayName ?? '?'} size="sm" />
+                      <span className="truncate">
+                        {recipient?.displayName}{' '}
+                        <span className="text-muted-foreground">({recipient?.email})</span>
+                      </span>
                     </span>
                     <span className="text-muted-foreground">
                       {rsvp?.status ?? 'pending'}

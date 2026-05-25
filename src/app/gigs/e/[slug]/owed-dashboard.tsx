@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { markPaid } from '../../lib/purchases/actions';
 import { buyerMarksDrop } from '../../lib/rsvp/buyer-bail';
+import { Avatar } from '../../components/avatar';
 
 type OwedRow = {
   owedId: string;
@@ -57,11 +58,16 @@ export function OwedDashboard({
             {rows.map((r) => (
               <TableRow key={r.owedId}>
                 <TableCell className="font-medium">
-                  {r.recipientName}
-                  <div className="text-xs text-muted-foreground">{r.recipientEmail}</div>
-                  {r.bailed && (
-                    <div className="text-xs text-amber-600 dark:text-amber-400">bailed — resale open</div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Avatar name={r.recipientName} size="sm" />
+                    <div className="min-w-0">
+                      <div className="truncate">{r.recipientName}</div>
+                      <div className="text-xs text-muted-foreground truncate">{r.recipientEmail}</div>
+                      {r.bailed && (
+                        <div className="text-xs text-amber-600 dark:text-amber-400">bailed — resale open</div>
+                      )}
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell>{fmtCents(r.amountCents)}</TableCell>
                 <TableCell className="hidden sm:table-cell">{r.daysOutstanding}d</TableCell>
