@@ -1,11 +1,18 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 
-const RAW_SECRET = process.env.GIGS_TOKEN_SECRET;
-if (!RAW_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('GIGS_TOKEN_SECRET must be set in production');
+// Lazy: read on first use so `next build`'s page-data collection (which
+// runs with NODE_ENV=production but no runtime env vars) doesn't crash.
+let cachedSecret: string | undefined;
+function getSecret(): string {
+  if (cachedSecret !== undefined) return cachedSecret;
+  const raw = process.env.GIGS_TOKEN_SECRET;
+  if (!raw && process.env.NODE_ENV === 'production') {
+    throw new Error('GIGS_TOKEN_SECRET must be set in production');
+  }
+  cachedSecret = raw ?? 'dev-only-secret-do-not-use-in-prod';
+  return cachedSecret;
 }
-const SECRET = RAW_SECRET ?? 'dev-only-secret-do-not-use-in-prod';
 
 export const tokenPayloadSchema = z.object({
   rid: z.string().min(1),
@@ -37,7 +44,7 @@ function fromB64url(s: string): Buffer {
 }
 
 function sign(payload: string): string {
-  return b64url(createHmac('sha256', SECRET).update(payload).digest());
+  return b64url(createHmac('sha256', getSecret()).update(payload).digest());
 }
 
 export function signToken(payload: Omit<TokenPayload, 'exp'> & { ttlSec: number }): string {
