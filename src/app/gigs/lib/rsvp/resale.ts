@@ -117,6 +117,30 @@ export async function requestBail(raw: z.input<typeof requestInput>): Promise<Ba
   return { ok: true, listingId: listing.id, offered, alreadyOpen: !!existing };
 }
 
+export type BailTokenResult =
+  | { ok: true; eventSlug: string; alreadyOpen: boolean }
+  | { ok: false; reason: string };
+
+export async function applyBailRequestToken(token: string): Promise<BailTokenResult> {
+  const verified = verifyToken(token);
+  if (!verified.ok) return { ok: false, reason: verified.reason };
+  if (verified.payload.act !== 'bail.request') return { ok: false, reason: 'unsupported_action' };
+
+  const [event] = await db.select().from(events).where(eq(events.id, verified.payload.eid)).limit(1);
+  if (!event) return { ok: false, reason: 'no_event' };
+
+  const [invite] = await db
+    .select()
+    .from(eventInvites)
+    .where(and(eq(eventInvites.recipientId, verified.payload.rid), eq(eventInvites.eventId, event.id))!)
+    .limit(1);
+  if (!invite) return { ok: false, reason: 'no_invite' };
+
+  const result = await requestBail({ inviteId: invite.id });
+  if (!result.ok) return { ok: false, reason: result.reason };
+  return { ok: true, eventSlug: event.slug, alreadyOpen: result.alreadyOpen };
+}
+
 export type ClaimResaleResult =
   | { ok: true; eventSlug: string; alreadyClaimed: boolean }
   | { ok: false; reason: string };

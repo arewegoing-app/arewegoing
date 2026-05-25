@@ -4,7 +4,7 @@ import { events } from '@/app/gigs/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { applyTokenRsvp } from '@/app/gigs/lib/rsvp/actions';
 import { applyPledgeToken } from '@/app/gigs/lib/rsvp/pledge';
-import { applyResaleClaimToken } from '@/app/gigs/lib/rsvp/resale';
+import { applyBailRequestToken, applyResaleClaimToken } from '@/app/gigs/lib/rsvp/resale';
 import { applyReactionToken } from '@/app/gigs/lib/discovery/reactions';
 import { verifyToken } from '@/app/gigs/lib/tokens/token-service';
 
@@ -25,6 +25,12 @@ export async function GET(req: NextRequest) {
     if (!result.ok) return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
     const qs = `claimed=1${result.alreadyClaimed ? '&replay=1' : ''}`;
     return NextResponse.redirect(new URL(`/gigs/e/${result.eventSlug}?${qs}`, req.url));
+  }
+
+  if (v.payload.act === 'bail.request') {
+    const result = await applyBailRequestToken(token);
+    if (!result.ok) return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+    return NextResponse.redirect(new URL(`/gigs/dropped`, req.url));
   }
 
   const isPledge = v.payload.act === 'pledge.confirm' || v.payload.act === 'pledge.drop';

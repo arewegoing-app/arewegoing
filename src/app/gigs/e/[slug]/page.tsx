@@ -97,14 +97,21 @@ export default async function EventDetailPage({
     : [];
 
   const now = Date.now();
+  const rsvpByInvite = new Map(
+    (await db
+      .select()
+      .from(rsvps)).map((r) => [r.eventInviteId, r]),
+  );
   const dashboardRows = owedRows.map((r) => ({
     owedId: r.owed.id,
+    inviteId: r.owed.eventInviteId,
     recipientName: r.recipient.displayName,
     recipientEmail: r.recipient.email,
     amountCents: r.owed.amountCents,
     paid: r.owed.paid === 1,
     daysOutstanding: Math.max(0, Math.floor((now - new Date(r.purchase.createdAt).getTime()) / 86_400_000)),
     lastRemindedAt: r.owed.lastRemindedAt,
+    bailed: rsvpByInvite.get(r.owed.eventInviteId)?.pledgeState === 'bailed',
   }));
   const totals = dashboardRows.reduce(
     (acc, r) => ({

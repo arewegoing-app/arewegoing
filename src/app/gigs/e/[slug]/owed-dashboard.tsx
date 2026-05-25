@@ -2,20 +2,23 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { BellRingIcon, CheckIcon } from 'lucide-react';
+import { BellRingIcon, CheckIcon, UserMinusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { markPaid } from '../../lib/purchases/actions';
+import { buyerMarksDrop } from '../../lib/rsvp/buyer-bail';
 
 type OwedRow = {
   owedId: string;
+  inviteId: string;
   recipientName: string;
   recipientEmail: string;
   amountCents: number;
   paid: boolean;
   daysOutstanding: number;
   lastRemindedAt: Date | null;
+  bailed: boolean;
 };
 
 const fmtCents = (c: number) => `$${(c / 100).toFixed(2)}`;
@@ -56,12 +59,18 @@ export function OwedDashboard({
                 <TableCell className="font-medium">
                   {r.recipientName}
                   <div className="text-xs text-muted-foreground">{r.recipientEmail}</div>
+                  {r.bailed && (
+                    <div className="text-xs text-amber-600 dark:text-amber-400">bailed — resale open</div>
+                  )}
                 </TableCell>
                 <TableCell>{fmtCents(r.amountCents)}</TableCell>
                 <TableCell className="hidden sm:table-cell">{r.daysOutstanding}d</TableCell>
                 <TableCell className="hidden sm:table-cell">{fmtDate(r.lastRemindedAt)}</TableCell>
                 <TableCell className="text-right">
-                  <PaidToggle owedId={r.owedId} paid={r.paid} />
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    {!r.paid && !r.bailed && <DropAction inviteId={r.inviteId} />}
+                    <PaidToggle owedId={r.owedId} paid={r.paid} />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -76,6 +85,30 @@ export function OwedDashboard({
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+function DropAction({ inviteId }: { inviteId: string }) {
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="ghost"
+      disabled={pending}
+      aria-label="Mark as dropped — open resale"
+      onClick={() => {
+        const ok = window.confirm("Mark this person as dropped? Their ticket will be offered to the rest of the crew. They still owe you if nobody claims it before the deadline.");
+        if (!ok) return;
+        startTransition(async () => {
+          await buyerMarksDrop({ inviteId });
+          router.refresh();
+        });
+      }}
+    >
+      <UserMinusIcon aria-hidden="true" /> Drop
+    </Button>
   );
 }
 
