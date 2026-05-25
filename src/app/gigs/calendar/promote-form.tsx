@@ -2,22 +2,26 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { MegaphoneIcon } from 'lucide-react';
 import { promoteToRally } from '../lib/discovery/promote';
+import { Button } from '@/components/ui/button';
 
 export function PromoteToRallyForm({ eventId }: { eventId: string }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   return (
-    <button
+    <Button
       type="button"
       disabled={pending}
-      onClick={() => startTransition(async () => {
-        const r = await promoteToRally({ eventId });
-        if (r.ok) router.push(`/gigs/e/${r.slug}`);
-      })}
-      className="rounded bg-emerald-600 px-3 py-1.5 text-sm disabled:opacity-50"
+      onClick={() =>
+        startTransition(async () => {
+          const r = await promoteToRally({ eventId });
+          if (r.ok) router.push(`/gigs/e/${r.slug}`);
+        })
+      }
+      className="w-full sm:w-auto"
     >
-      {pending ? 'Promoting…' : 'Ready to rally — claim this event'}
-    </button>
+      <MegaphoneIcon aria-hidden="true" /> {pending ? 'Claiming…' : 'Ready to rally — claim this gig'}
+    </Button>
   );
 }

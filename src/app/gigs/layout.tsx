@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { auth, signOut } from './lib/auth/auth';
 import { ensureMigrated } from './lib/db/client';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,23 +10,44 @@ export default async function GigsLayout({ children }: { children: React.ReactNo
   await ensureMigrated();
   const session = await auth();
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100">
-      <nav className="border-b border-neutral-800 px-6 py-3 flex items-center justify-between">
-        <Link href="/gigs" className="font-mono text-lg">gigs</Link>
-        <div className="flex items-center gap-4 text-sm">
-          {session?.user ? (
-            <>
-              <span className="text-neutral-400">{session.user.email}</span>
-              <form action={async () => { 'use server'; await signOut({ redirectTo: '/gigs' }); }}>
-                <button type="submit" className="text-neutral-400 hover:text-neutral-100">sign out</button>
-              </form>
-            </>
-          ) : (
-            <Link href="/gigs/signin" className="text-emerald-400">sign in</Link>
-          )}
-        </div>
-      </nav>
-      <div className="px-6 py-8 max-w-4xl mx-auto">{children}</div>
-    </main>
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="border-b">
+        <nav
+          aria-label="Primary"
+          className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3 sm:px-6"
+        >
+          <Link href="/gigs" className="font-mono text-base font-semibold sm:text-lg">
+            gigs
+          </Link>
+          <div className="flex items-center gap-3 text-sm">
+            <Link href="/gigs/calendar" className="text-muted-foreground hover:text-foreground">
+              Calendar
+            </Link>
+            {session?.user ? (
+              <>
+                <span className="hidden text-muted-foreground sm:inline" aria-label="Signed in as">
+                  {session.user.email}
+                </span>
+                <form
+                  action={async () => {
+                    'use server';
+                    await signOut({ redirectTo: '/gigs' });
+                  }}
+                >
+                  <Button type="submit" variant="ghost" size="sm">
+                    Sign out
+                  </Button>
+                </form>
+              </>
+            ) : (
+              <Link href="/gigs/signin" className={cn(buttonVariants({ size: 'sm' }))}>
+                Sign in
+              </Link>
+            )}
+          </div>
+        </nav>
+      </header>
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+    </div>
   );
 }
