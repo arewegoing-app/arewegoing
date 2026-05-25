@@ -77,9 +77,11 @@ export const knownEvents: SeedEvent[] = [
     source: 'undertheradar',
     sourceUrl: 'https://www.undertheradar.co.nz/gig/102582/Pallys---Rhythm-For-Ribbons.utr',
     title: "Pally's — Rhythm For Ribbons",
-    venue: 'San Fran',
+    venue: 'Afters.',
     city: 'Wellington',
-    startsAtUTC: '2026-06-27T09:00:00.000Z',
+    // Sun 31 May 2026, 8pm NZST (NZST = UTC+12 in May).
+    startsAtUTC: '2026-05-31T08:00:00.000Z',
+    priceLow: 20,
   },
   {
     source: 'undertheradar',

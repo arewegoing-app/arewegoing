@@ -4,7 +4,7 @@ export function inviteEmail(args: {
   buyer: { name: string; email: string };
   recipient: Recipient;
   event: Event;
-  links: { in: string; maybe: string; out: string; view: string };
+  links: { in: string; maybe: string; out: string; view: string; respond?: string };
 }): { subject: string; html: string; text: string } {
   const { buyer, recipient, event, links } = args;
   const when = event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ', { dateStyle: 'medium', timeStyle: 'short' }) : 'TBD';
@@ -24,6 +24,8 @@ export function inviteEmail(args: {
     `Maybe:   ${links.maybe}`,
     `Not this time: ${links.out}`,
     '',
+    links.respond ? `Got a condition? "Yes if 2 others go" / "yes if under $40": ${links.respond}` : '',
+    '',
     `Event page: ${links.view}`,
   ].filter(Boolean).join('\n');
   const html = `
@@ -39,6 +41,7 @@ ${event.venue ? `<p>at ${escapeHtml(event.venue)}</p>` : ''}
   <a href="${links.out}" style="display:inline-block;padding:12px 20px;background:#6b7280;color:#fff;text-decoration:none;border-radius:6px">Not this time</a>
 </p>
 <p><a href="${links.view}" style="color:#0ea5e9">See who else is in →</a></p>
+${links.respond ? `<p style="font-size:13px;color:#555">Want a conditional yes? <a href="${links.respond}" style="color:#0ea5e9">Set conditions</a> ("yes if 2 others go" / "yes if under $40" / "yes if we get a promo code").</p>` : ''}
 </body></html>`.trim();
   return { subject, html, text };
 }

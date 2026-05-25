@@ -1,11 +1,10 @@
 import Link from 'next/link';
-import { and, asc, gte, lte, or, isNull, eq } from 'drizzle-orm';
+import { and, asc, gte, lte, or, isNull, eq, sql } from 'drizzle-orm';
 import { CheckCircle2Icon, EyeIcon, PlusIcon, TicketIcon, XCircleIcon } from 'lucide-react';
 import { auth } from '../lib/auth/auth';
 import { db, ensureMigrated } from '../lib/db/client';
 import { events, resaleListings } from '../lib/db/schema';
 import { getReactionTallies } from '../lib/discovery/reactions';
-import { sql } from 'drizzle-orm';
 import { CalendarReactions } from './reactions-row';
 import { ClaimForm } from './claim-form';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +36,9 @@ export default async function CalendarPage({
     ? or(isNull(events.ownerUserId), eq(events.ownerUserId, session!.user!.id))!
     : isNull(events.ownerUserId);
 
+  // Two passes: events with a real date in the next 90 days, plus TBD events
+  // (live ingest hasn't resolved a date yet). TBD events show in their own
+  // bucket at the bottom so they don't disappear from the calendar.
   const upcoming = await db
     .select()
     .from(events)
@@ -49,11 +51,17 @@ export default async function CalendarPage({
     )
     .orderBy(asc(events.startsAt));
 
+  const tbd = await db
+    .select()
+    .from(events)
+    .where(and(ownershipFilter, isNull(events.startsAt))!);
 
-  const tallies = await getReactionTallies(upcoming.map((e) => e.id));
+
+  const allShown = [...upcoming, ...tbd];
+  const tallies = await getReactionTallies(allShown.map((e) => e.id));
 
   // Count active resale listings per event in one query.
-  const eventIds = upcoming.map((e) => e.id);
+  const eventIds = allShown.map((e) => e.id);
   const resaleCounts = new Map<string, number>();
   if (eventIds.length > 0) {
     const rows = await db
@@ -92,7 +100,7 @@ export default async function CalendarPage({
         </div>
       )}
 
-      {upcoming.length === 0 && (
+      {upcoming.length === 0 && tbd.length === 0 && (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             No upcoming events yet. Try refreshing.
@@ -114,6 +122,17 @@ export default async function CalendarPage({
             </ul>
           </section>
         ))}
+
+        {tbd.length > 0 && (
+          <section aria-label="Events with no fixed date yet">
+            <h2 className="mb-3 text-sm font-medium text-muted-foreground">Date TBD</h2>
+            <ul className="space-y-3">
+              {tbd.map((e) => (
+                <EventCard key={e.id} event={e} tally={tallies.get(e.id)} resaleCount={resaleCounts.get(e.id) ?? 0} />
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </div>
   );

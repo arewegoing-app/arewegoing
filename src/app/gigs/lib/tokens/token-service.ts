@@ -8,6 +8,7 @@ export const tokenPayloadSchema = z.object({
   eid: z.string().min(1),
   act: z.enum([
     'rsvp.in', 'rsvp.maybe', 'rsvp.out',
+    'rsvp.respond',
     'pledge.confirm', 'pledge.drop',
     'react.interested', 'react.down', 'react.cant', 'react.pledge_1', 'react.pledge_2',
     'bail.request', 'bail.claim',

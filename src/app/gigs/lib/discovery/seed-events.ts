@@ -42,15 +42,18 @@ export async function seedKnownEventsIfEmpty(): Promise<{ inserted: number; live
       } catch {
         // fall through to fallback
       }
-      // Network/parse failed. Don't ship a wrong date — the hardcoded value is a
-      // guess. Better to show "TBD" so users notice and re-trigger ingest later.
+      // Live fetch failed (timeout / blocked / no metadata). Fall back to the
+      // hardcoded snapshot so the calendar still has SOMETHING to show. These
+      // snapshots are our best guess and get overwritten the next time the
+      // cron successfully hits the source. If a snapshot is wrong, fix it in
+      // known-events.ts.
       return {
         source: k.source,
         sourceUrl: k.sourceUrl,
         title: k.title,
         venue: k.venue,
         city: k.city,
-        startsAt: null as Date | null,
+        startsAt: new Date(k.startsAtUTC),
         priceLow: k.priceLow ?? null,
         imageUrl: null as string | null,
         seriesName: k.seriesName ?? null,

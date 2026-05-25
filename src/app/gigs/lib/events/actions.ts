@@ -107,6 +107,7 @@ export async function sendInvites(input: { eventId: string; recipientIds: string
       maybe: `${APP_URL}/gigs/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.maybe', ttlSec: INVITE_TTL_SEC })}`,
       out: `${APP_URL}/gigs/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.out', ttlSec: INVITE_TTL_SEC })}`,
       view: `${APP_URL}/gigs/e/${event.slug}?t=${signToken({ rid: r.id, eid: event.id, act: 'view', ttlSec: INVITE_TTL_SEC })}`,
+      respond: `${APP_URL}/gigs/e/${event.slug}/respond?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.respond', ttlSec: INVITE_TTL_SEC })}`,
     };
     const tmpl = inviteEmail({
       buyer: buyerRow,
