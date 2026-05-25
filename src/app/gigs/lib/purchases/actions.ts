@@ -16,6 +16,11 @@ import {
   users,
 } from '../db/schema';
 import { sendEmail } from '../notifications/email';
+import { lockConfirmationEmail } from '../notifications/templates-lock';
+import { signToken } from '../tokens/token-service';
+
+const APP_URL = process.env.GIGS_APP_URL ?? 'http://localhost:3000';
+const BAIL_TTL_SEC = 60 * 60 * 24 * 30;
 
 const recordInput = z.object({
   eventId: z.string().min(1),
@@ -78,17 +83,22 @@ export async function recordPurchase(input: z.input<typeof recordInput>) {
 
   const [buyer] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
   for (const { recipient } of pledged) {
-    const subject = `You're locked in for ${event.title} — $${(splitCents / 100).toFixed(2)} to ${buyer?.name ?? buyer?.email ?? 'the buyer'}`;
-    const text = [
-      `Hey ${recipient.displayName},`,
-      '',
-      `${buyer?.name ?? buyer?.email} just bought tickets for ${event.title}.`,
-      `You owe $${(splitCents / 100).toFixed(2)}.`,
-      parsed.promoCode ? `Promo code applied: ${parsed.promoCode}` : '',
-      '',
-      `Pay back: bank transfer to ${buyer?.email ?? '[ask the buyer]'}`,
-    ].filter(Boolean).join('\n');
-    await sendEmail({ to: recipient.email, subject, text, html: `<p>${text.replace(/\n/g, '<br>')}</p>` });
+    const bailLink = `${APP_URL}/gigs/r?t=${signToken({
+      rid: recipient.id,
+      eid: event.id,
+      act: 'bail.request',
+      ttlSec: BAIL_TTL_SEC,
+    })}`;
+    const viewLink = `${APP_URL}/gigs/e/${event.slug}`;
+    const tmpl = lockConfirmationEmail({
+      buyer: { name: buyer?.name ?? '', email: buyer?.email ?? '' },
+      recipient,
+      event,
+      amountCents: splitCents,
+      promoCode: parsed.promoCode ?? null,
+      links: { bail: bailLink, view: viewLink },
+    });
+    await sendEmail({ to: recipient.email, subject: tmpl.subject, html: tmpl.html, text: tmpl.text });
   }
 
   return { purchaseId: purchase.id, locked: pledged.length, splitCents };

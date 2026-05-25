@@ -11,6 +11,7 @@ import {
   pledgeCommitments,
   purchases,
   recipients,
+  resaleListings,
   rsvps,
 } from '@/app/gigs/lib/db/schema';
 import { InviteForm } from './invite-form';
@@ -97,6 +98,11 @@ export default async function EventDetailPage({
     : [];
 
   const now = Date.now();
+  const openListings = await db
+    .select()
+    .from(resaleListings)
+    .where(and(eq(resaleListings.eventId, event.id), eq(resaleListings.state, 'open'))!);
+
   const rsvpByInvite = new Map(
     (await db
       .select()
@@ -188,6 +194,19 @@ export default async function EventDetailPage({
       )}
 
       {dashboardRows.length > 0 && <OwedDashboard rows={dashboardRows} totals={totals} />}
+
+      {openListings.length > 0 && (
+        <Card className="border-amber-300 dark:border-amber-900/50">
+          <CardHeader>
+            <CardTitle className="text-sm">{openListings.length} ticket{openListings.length === 1 ? '' : 's'} up for resale</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            The resale offer has gone out. If nobody claims by{' '}
+            {new Date(openListings[0].expiresAt).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', dateStyle: 'medium', timeStyle: 'short' })}
+            , the original pledger remains on the hook.
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
