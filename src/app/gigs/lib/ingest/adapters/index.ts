@@ -12,6 +12,9 @@ const HOST_MAP: Array<{ test: RegExp; source: IngestSource }> = [
   { test: /(^|\.)ra\.co$/i, source: 'ra' },
   { test: /(^|\.)residentadvisor\.net$/i, source: 'ra' },
   { test: /(^|\.)iticket\.co\.nz$/i, source: 'iticket' },
+  { test: /(^|\.)eventfinda\.co\.nz$/i, source: 'eventfinda' },
+  { test: /(^|\.)eventfinda\.com$/i, source: 'eventfinda' },
+  { test: /(^|\.)dice\.fm$/i, source: 'dice' },
 ];
 
 export function detectSource(url: URL): IngestSource {

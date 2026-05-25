@@ -9,6 +9,8 @@ export const ingestSources = [
   'ticketfairy',
   'ra',
   'iticket',
+  'eventfinda',
+  'dice',
   'generic',
 ] as const;
 export type IngestSource = (typeof ingestSources)[number];

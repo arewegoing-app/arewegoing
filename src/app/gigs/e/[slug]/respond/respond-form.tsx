@@ -109,7 +109,6 @@ export function RespondForm({
             disabled={pending}
             onClick={() => submit(s)}
             className="h-auto whitespace-normal py-3 text-xs sm:text-sm"
-            aria-label={hint ?? label}
             title={hint}
           >
             {label}
