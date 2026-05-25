@@ -240,8 +240,10 @@ export default async function EventDetailPage({
             <ul className="divide-y divide-border rounded-md border">
               {invitesRows.map(({ invite, recipient, rsvp }) => {
                 const c = commitmentByInvite.get(invite.id);
-                const pledgeBadge =
-                  rsvp?.pledgeState === 'locked'
+                const hasOwn = invite.hasOwnTicket === 1;
+                const pledgeBadge = hasOwn
+                  ? '🎟️ has own ticket'
+                  : rsvp?.pledgeState === 'locked'
                     ? '🔒 locked'
                     : rsvp?.pledgeState === 'pledged'
                       ? '💵 pledged'

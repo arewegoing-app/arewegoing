@@ -41,12 +41,14 @@ export async function recordPurchase(input: z.input<typeof recordInput>) {
     .limit(1);
   if (!event) throw new Error('Event not found');
 
-  const pledged = await db
+  // People who already have their own ticket are excluded — they don't owe.
+  const pledgedAll = await db
     .select({ invite: eventInvites, recipient: recipients, rsvp: rsvps })
     .from(eventInvites)
     .innerJoin(rsvps, eq(rsvps.eventInviteId, eventInvites.id))
     .innerJoin(recipients, eq(recipients.id, eventInvites.recipientId))
     .where(and(eq(eventInvites.eventId, event.id), eq(rsvps.pledgeState, 'pledged')));
+  const pledged = pledgedAll.filter((p) => p.invite.hasOwnTicket !== 1);
   if (pledged.length === 0) throw new Error('No pledged recipients to lock');
 
   const splitCents = Math.ceil(parsed.totalCents / pledged.length);

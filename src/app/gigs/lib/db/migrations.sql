@@ -49,8 +49,12 @@ create table if not exists events (
 );
 
 do $$ begin
-  create type reaction_kind as enum ('interested', 'down', 'cant', 'pledge_1', 'pledge_2');
+  create type reaction_kind as enum ('interested', 'down', 'cant', 'pledge_1', 'pledge_2', 'have_ticket');
 exception when duplicate_object then null; end $$;
+
+do $$ begin
+  alter type reaction_kind add value if not exists 'have_ticket';
+exception when others then null; end $$;
 
 create table if not exists event_reactions (
   id text primary key,
@@ -68,11 +72,15 @@ create table if not exists event_invites (
   id text primary key,
   event_id text not null references events(id) on delete cascade,
   recipient_id text not null references recipients(id) on delete cascade,
+  has_own_ticket integer not null default 0,
   sent_at timestamp not null default now(),
   opened_at timestamp,
   last_clicked_at timestamp
 );
 create unique index if not exists event_invites_event_recipient on event_invites(event_id, recipient_id);
+do $$ begin
+  alter table event_invites add column if not exists has_own_ticket integer not null default 0;
+exception when others then null; end $$;
 
 create table if not exists rsvps (
   id text primary key,

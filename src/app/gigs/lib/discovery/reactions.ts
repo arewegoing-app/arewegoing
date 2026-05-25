@@ -8,7 +8,7 @@ import { eventReactions, events } from '../db/schema';
 import { verifyToken } from '../tokens/token-service';
 import { getOrSetAnonId } from '../anon/identity';
 
-const reactionKindSchema = z.enum(['interested', 'down', 'cant', 'pledge_1', 'pledge_2']);
+const reactionKindSchema = z.enum(['interested', 'down', 'cant', 'pledge_1', 'pledge_2', 'have_ticket']);
 export type ReactionKind = z.infer<typeof reactionKindSchema>;
 
 const setBuyerInput = z.object({
@@ -54,6 +54,7 @@ const TOKEN_ACTIONS: Record<string, ReactionKind> = {
   'react.cant': 'cant',
   'react.pledge_1': 'pledge_1',
   'react.pledge_2': 'pledge_2',
+  'react.have_ticket': 'have_ticket',
 };
 
 export async function applyReactionToken(token: string): Promise<ReactionTokenResult> {
@@ -91,7 +92,7 @@ export async function getReactionTallies(eventIds: string[]): Promise<Map<string
     .groupBy(eventReactions.eventId, eventReactions.kind);
 
   const map = new Map<string, ReactionTally>();
-  for (const e of eventIds) map.set(e, { interested: 0, down: 0, cant: 0, pledge_1: 0, pledge_2: 0 });
+  for (const e of eventIds) map.set(e, { interested: 0, down: 0, cant: 0, pledge_1: 0, pledge_2: 0, have_ticket: 0 });
   for (const r of rows) {
     const tally = map.get(r.eventId);
     if (tally) tally[r.kind as ReactionKind] = Number(r.count);

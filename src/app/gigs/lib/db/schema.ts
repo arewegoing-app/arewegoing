@@ -48,7 +48,7 @@ export const events = pgTable('events', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const reactionKindEnum = pgEnum('reaction_kind', ['interested', 'down', 'cant', 'pledge_1', 'pledge_2']);
+export const reactionKindEnum = pgEnum('reaction_kind', ['interested', 'down', 'cant', 'pledge_1', 'pledge_2', 'have_ticket']);
 
 export const eventReactions = pgTable('event_reactions', {
   id: id(),
@@ -69,6 +69,7 @@ export const eventInvites = pgTable('event_invites', {
   id: id(),
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
   recipientId: text('recipient_id').notNull().references(() => recipients.id, { onDelete: 'cascade' }),
+  hasOwnTicket: integer('has_own_ticket').notNull().default(0),
   sentAt: timestamp('sent_at').notNull().defaultNow(),
   openedAt: timestamp('opened_at'),
   lastClickedAt: timestamp('last_clicked_at'),

@@ -6,18 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { setRsvpConditions } from '@/app/gigs/lib/rsvp/conditions';
-import { setRsvpByInviteId } from './actions';
+import { setRsvpByInviteId, setHasOwnTicket } from './actions';
 
 type Status = 'going' | 'maybe' | 'out' | 'conditional';
 type ConditionKind = 'min_going' | 'price_ceiling' | 'requires_promo';
+type Action = Status | 'have_ticket';
 
 type Condition =
   | { kind: 'min_going'; value: number; satisfied: boolean }
   | { kind: 'price_ceiling'; value: number; satisfied: boolean }
   | { kind: 'requires_promo'; value: boolean; satisfied: boolean };
 
-const STATUS_BUTTONS: Array<{ status: Status; label: string }> = [
+const STATUS_BUTTONS: Array<{ status: Action; label: string; hint?: string }> = [
   { status: 'going', label: "I'm in" },
+  { status: 'have_ticket', label: 'Got mine already', hint: 'Already bought my own ticket' },
   { status: 'maybe', label: 'Maybe' },
   { status: 'out', label: "Can't this time" },
 ];
@@ -57,9 +59,17 @@ export function RespondForm({
     setConditions(conditions.map((c) => (c.kind === k ? { ...c, value } : c)) as Condition[]);
   };
 
-  const submit = (chosen: Status) => {
+  const submit = (chosen: Action) => {
     startTransition(async () => {
       setMsg(null);
+      if (chosen === 'have_ticket') {
+        await setHasOwnTicket({ eventInviteId, hasOwnTicket: true });
+        // Also mark them as going so the headcount reflects it.
+        await setRsvpByInviteId({ eventInviteId, status: 'going' });
+        setStatus('going');
+        router.refresh();
+        return;
+      }
       if (chosen === 'conditional') {
         if (conditions.length === 0) {
           setMsg('Pick at least one condition or use a different button.');
@@ -90,8 +100,8 @@ export function RespondForm({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-3 gap-2">
-        {STATUS_BUTTONS.map(({ status: s, label }) => (
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {STATUS_BUTTONS.map(({ status: s, label, hint }) => (
           <Button
             key={s}
             type="button"
@@ -99,6 +109,8 @@ export function RespondForm({
             disabled={pending}
             onClick={() => submit(s)}
             className="h-auto whitespace-normal py-3 text-xs sm:text-sm"
+            aria-label={hint ?? label}
+            title={hint}
           >
             {label}
           </Button>

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { and, asc, gte, lte, or, isNull, eq, sql } from 'drizzle-orm';
-import { CheckCircle2Icon, EyeIcon, PlusIcon, TicketIcon, XCircleIcon } from 'lucide-react';
+import { CheckCircle2Icon, EyeIcon, PlusIcon, TicketIcon, TicketCheckIcon, XCircleIcon } from 'lucide-react';
 import { auth } from '../lib/auth/auth';
 import { db, ensureMigrated } from '../lib/db/client';
 import { events, resaleListings } from '../lib/db/schema';
@@ -188,12 +188,12 @@ function EventCard({
 }: {
   event: EventRow;
   tally:
-    | { interested: number; down: number; cant: number; pledge_1: number; pledge_2: number }
+    | { interested: number; down: number; cant: number; pledge_1: number; pledge_2: number; have_ticket: number }
     | undefined;
   resaleCount: number;
 }) {
-  const t = tally ?? { interested: 0, down: 0, cant: 0, pledge_1: 0, pledge_2: 0 };
-  const downCount = t.down + t.pledge_1 + t.pledge_2;
+  const t = tally ?? { interested: 0, down: 0, cant: 0, pledge_1: 0, pledge_2: 0, have_ticket: 0 };
+  const downCount = t.down + t.pledge_1 + t.pledge_2 + t.have_ticket;
   const unclaimed = !event.ownerUserId && !event.anonOwnerId;
   const readyToRally = downCount >= 3 && unclaimed;
   return (
@@ -275,12 +275,13 @@ function EventCard({
 function ReactionTally({
   tally,
 }: {
-  tally: { interested: number; down: number; cant: number; pledge_1: number; pledge_2: number };
+  tally: { interested: number; down: number; cant: number; pledge_1: number; pledge_2: number; have_ticket: number };
 }) {
   const items: Array<{ icon: typeof EyeIcon; value: number; label: string }> = [
     { icon: EyeIcon, value: tally.interested, label: 'interested' },
     { icon: CheckCircle2Icon, value: tally.down, label: 'down' },
     { icon: TicketIcon, value: tally.pledge_1 + tally.pledge_2, label: 'pledging' },
+    { icon: TicketCheckIcon, value: tally.have_ticket, label: 'have ticket' },
     { icon: XCircleIcon, value: tally.cant, label: "can't" },
   ];
   const visible = items.filter((i) => i.value > 0);

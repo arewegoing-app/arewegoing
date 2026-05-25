@@ -6,6 +6,20 @@ import { db } from '@/app/gigs/lib/db/client';
 import { eventInvites, rsvps } from '@/app/gigs/lib/db/schema';
 import { evaluateEventConditions } from '@/app/gigs/lib/rsvp/conditions';
 
+const ownTicketInput = z.object({
+  eventInviteId: z.string().min(1),
+  hasOwnTicket: z.boolean(),
+});
+
+export async function setHasOwnTicket(raw: z.input<typeof ownTicketInput>) {
+  const parsed = ownTicketInput.parse(raw);
+  await db
+    .update(eventInvites)
+    .set({ hasOwnTicket: parsed.hasOwnTicket ? 1 : 0 })
+    .where(eq(eventInvites.id, parsed.eventInviteId));
+  return { ok: true };
+}
+
 const input = z.object({
   eventInviteId: z.string().min(1),
   status: z.enum(['going', 'maybe', 'out']),
