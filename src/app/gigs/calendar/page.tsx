@@ -91,7 +91,7 @@ export default async function CalendarPage({
           <section key={weekStart.toISOString()} aria-label={`Week of ${weekStart.toDateString()}`}>
             <h2 className="mb-3 text-sm font-medium text-muted-foreground">
               Week of{' '}
-              {weekStart.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}
+              {weekStart.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', timeZone: 'Pacific/Auckland' })}
             </h2>
             <ul className="space-y-3">
               {items.map((e) => (
@@ -143,6 +143,7 @@ function EventCard({
                       month: 'short',
                       hour: 'numeric',
                       minute: '2-digit',
+                      timeZone: 'Pacific/Auckland',
                     })
                   : ' · TBD'}
                 {event.priceLow ? ` · from $${event.priceLow}` : ''}
@@ -213,6 +214,7 @@ function groupByWeek(items: EventRow[]): { weekStart: Date; items: EventRow[] }[
     const monday = new Date(d);
     monday.setDate(d.getDate() - dow);
     monday.setHours(0, 0, 0, 0);
+    void 0;
     const key = monday.toISOString();
     if (!buckets.has(key)) buckets.set(key, { weekStart: monday, items: [] });
     buckets.get(key)!.items.push(item);

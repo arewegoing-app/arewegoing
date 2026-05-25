@@ -121,7 +121,7 @@ export default async function EventDetailPage({
         <h1 className="text-2xl font-semibold tracking-tight">{event.title}</h1>
         <p className="text-sm text-muted-foreground">
           {event.venue ?? '—'} ·{' '}
-          {event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ') : 'TBD'}
+          {event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', dateStyle: 'full', timeStyle: 'short' }) : 'TBD'}
           {event.priceLow ? ` · from $${event.priceLow}` : ''}
         </p>
         {event.seriesName && (

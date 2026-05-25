@@ -10,6 +10,7 @@ export const tokenPayloadSchema = z.object({
     'rsvp.in', 'rsvp.maybe', 'rsvp.out',
     'pledge.confirm', 'pledge.drop',
     'react.interested', 'react.down', 'react.cant', 'react.pledge_1', 'react.pledge_2',
+    'bail.request', 'bail.claim',
     'view',
   ]),
   exp: z.number().int(),

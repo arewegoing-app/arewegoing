@@ -118,6 +118,22 @@ export const pledgeCommitments = pgTable('pledge_commitments', {
 export type FinalCall = typeof finalCalls.$inferSelect;
 export type PledgeCommitment = typeof pledgeCommitments.$inferSelect;
 
+export const resaleStateEnum = pgEnum('resale_state', ['open', 'claimed', 'expired']);
+
+export const resaleListings = pgTable('resale_listings', {
+  id: id(),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  originalInviteId: text('original_invite_id').notNull().references(() => eventInvites.id, { onDelete: 'cascade' }),
+  state: resaleStateEnum('state').notNull().default('open'),
+  expiresAt: timestamp('expires_at').notNull(),
+  claimedByInviteId: text('claimed_by_invite_id').references(() => eventInvites.id, { onDelete: 'set null' }),
+  claimedAt: timestamp('claimed_at'),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export type ResaleListing = typeof resaleListings.$inferSelect;
+
 export const purchases = pgTable('purchases', {
   id: id(),
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
