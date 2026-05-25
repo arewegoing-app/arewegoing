@@ -21,6 +21,7 @@ import { InviteForm } from './invite-form';
 import type { ReliabilityStatsMap } from './invite-form';
 import { FinalCallForm } from './final-call-form';
 import { ShareButtons } from './share-buttons';
+import { PublicInviteToggle } from './public-invite-toggle';
 import { OwedDashboard } from './owed-dashboard';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -227,6 +228,13 @@ export default async function EventDetailPage({
         eventId={event.id}
         initialStatus={promo?.status ?? 'not_asked'}
         initialCode={promo?.code ?? null}
+      />
+
+      <PublicInviteToggle
+        eventId={event.id}
+        eventSlug={event.slug}
+        initialToken={event.publicInviteToken ?? null}
+        appUrl={process.env.GIGS_APP_URL ?? ''}
       />
 
       {dashboardRows.length > 0 && <OwedDashboard rows={dashboardRows} totals={totals} />}

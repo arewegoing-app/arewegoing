@@ -43,6 +43,7 @@ create table if not exists events (
   source text not null default 'manual',
   source_url text unique,
   status text not null default 'active',
+  public_invite_token text,
   discovered_at timestamp,
   series_name text,
   created_at timestamp not null default now()
@@ -67,6 +68,9 @@ create table if not exists event_reactions (
   set_at timestamp not null default now()
 );
 create unique index if not exists event_reactions_event_actor on event_reactions(event_id, recipient_id, user_id, anon_id);
+do $$ begin
+  alter table events add column if not exists public_invite_token text;
+exception when others then null; end $$;
 
 create table if not exists event_invites (
   id text primary key,

@@ -43,6 +43,7 @@ export const events = pgTable('events', {
   source: text('source').notNull().default('manual'),
   sourceUrl: text('source_url').unique(),
   status: text('status').notNull().default('active'),
+  publicInviteToken: text('public_invite_token'),
   discoveredAt: timestamp('discovered_at'),
   seriesName: text('series_name'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
