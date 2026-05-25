@@ -23,6 +23,11 @@ export default async function GigsLayout({ children }: { children: React.ReactNo
             <Link href="/gigs/mine" className="text-muted-foreground hover:text-foreground">
               Your gigs
             </Link>
+            {session?.user && (
+              <Link href="/gigs/owed" className="text-muted-foreground hover:text-foreground">
+                Owed
+              </Link>
+            )}
             {session?.user ? (
               <>
                 <span className="hidden text-muted-foreground sm:inline" aria-label="Signed in as">
