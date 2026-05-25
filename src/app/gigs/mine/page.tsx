@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { eq, or, desc } from 'drizzle-orm';
-import { CalendarIcon } from 'lucide-react';
+import { BookmarkIcon, CalendarIcon } from 'lucide-react';
 import { auth } from '../lib/auth/auth';
 import { readAnonId } from '../lib/anon/identity';
 import { db, ensureMigrated } from '../lib/db/client';
@@ -35,6 +35,8 @@ export default async function MyEventsPage() {
     );
   }
 
+  const usingAnon = !userId && !!anonId;
+
   const filters = [
     userId ? eq(events.ownerUserId, userId) : undefined,
     anonId ? eq(events.anonOwnerId, anonId) : undefined,
@@ -59,6 +61,20 @@ export default async function MyEventsPage() {
           <CalendarIcon aria-hidden="true" /> Calendar
         </Link>
       </header>
+
+      {usingAnon && (
+        <div
+          className="flex items-start gap-3 rounded-md border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-200"
+          role="note"
+        >
+          <BookmarkIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <div>
+            <strong>Bookmark this page.</strong> You&apos;re identified by a cookie on this device.
+            Clear your cookies or switch browsers and you&apos;ll lose access — bookmark the URL or
+            email it to yourself.
+          </div>
+        </div>
+      )}
 
       {mine.length === 0 ? (
         <Card>
