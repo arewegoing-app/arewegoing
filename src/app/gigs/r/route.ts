@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/app/gigs/lib/db/client';
-import { events } from '@/app/gigs/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eventFeedback, eventInvites, events } from '@/app/gigs/lib/db/schema';
+import { and, eq, isNull } from 'drizzle-orm';
 import { applyTokenRsvp } from '@/app/gigs/lib/rsvp/actions';
 import { applyPledgeToken } from '@/app/gigs/lib/rsvp/pledge';
 import { applyBailRequestToken, applyResaleClaimToken } from '@/app/gigs/lib/rsvp/resale';
@@ -13,6 +13,48 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.redirect(new URL('/gigs', req.url));
   const v = verifyToken(token);
   if (!v.ok) return NextResponse.redirect(new URL(`/gigs/r/error?reason=${v.reason}`, req.url));
+
+  if (v.payload.act === 'feedback.submit') {
+    const ratingParam = req.nextUrl.searchParams.get('rating');
+    const rating = ratingParam !== null ? parseInt(ratingParam, 10) : null;
+    if (rating === null || isNaN(rating) || rating < 0 || rating > 5) {
+      return NextResponse.redirect(new URL('/gigs/r/error?reason=malformed', req.url));
+    }
+
+    // Find the event_feedback row linked to this recipient + event.
+    const [invite] = await db
+      .select()
+      .from(eventInvites)
+      .where(and(eq(eventInvites.eventId, v.payload.eid), eq(eventInvites.recipientId, v.payload.rid)))
+      .limit(1);
+
+    if (invite) {
+      const [feedbackRow] = await db
+        .select()
+        .from(eventFeedback)
+        .where(
+          and(
+            eq(eventFeedback.eventId, v.payload.eid),
+            eq(eventFeedback.eventInviteId, invite.id),
+            isNull(eventFeedback.anonId),
+          ),
+        )
+        .limit(1);
+
+      if (feedbackRow && !feedbackRow.respondedAt) {
+        await db
+          .update(eventFeedback)
+          .set({
+            respondedAt: new Date(),
+            attended: rating > 0 ? 1 : 0,
+            rating: rating > 0 ? rating : null,
+          })
+          .where(eq(eventFeedback.id, feedbackRow.id));
+      }
+    }
+
+    return NextResponse.redirect(new URL('/gigs/feedback/thanks', req.url));
+  }
 
   if (v.payload.act.startsWith('react.')) {
     const result = await applyReactionToken(token);

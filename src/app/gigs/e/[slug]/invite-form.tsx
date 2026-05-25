@@ -5,8 +5,28 @@ import { useRouter } from 'next/navigation';
 import { sendInvites } from '@/app/gigs/lib/events/actions';
 import { addRecipient } from '@/app/gigs/lib/events/actions';
 import type { Recipient } from '@/app/gigs/lib/db/schema';
+import type { ReliabilityStats } from '@/app/gigs/lib/memory/stats';
 
-export function InviteForm({ eventId, recipients }: { eventId: string; recipients: Recipient[] }) {
+/** Serialisable snapshot of ReliabilityStats passed from the server page. */
+export type ReliabilityStatsMap = Record<string, ReliabilityStats>;
+
+function reliabilityDot(s: ReliabilityStats): { dot: string; title: string } {
+  const avgLabel = s.avgDaysToPay !== null ? `avg ${s.avgDaysToPay.toFixed(1)} days to pay` : 'no pay history';
+  const title = `${s.paid} paid, ${s.bails} bailed, ${avgLabel}`;
+  if (s.bails > 0) return { dot: '🔴', title };
+  if (s.unpaid > 0 || (s.avgDaysToPay !== null && s.avgDaysToPay > 7)) return { dot: '🟡', title };
+  return { dot: '🟢', title };
+}
+
+export function InviteForm({
+  eventId,
+  recipients,
+  reliabilityStats,
+}: {
+  eventId: string;
+  recipients: Recipient[];
+  reliabilityStats?: ReliabilityStatsMap;
+}) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -25,6 +45,18 @@ export function InviteForm({ eventId, recipients }: { eventId: string; recipient
             <li key={r.id} className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
               <span>{r.displayName} <span className="text-neutral-500">({r.email})</span></span>
+              {reliabilityStats?.[r.id] && (() => {
+                const { dot, title } = reliabilityDot(reliabilityStats[r.id]);
+                return (
+                  <span
+                    aria-label={title}
+                    title={title}
+                    className="cursor-default select-none"
+                  >
+                    {dot}
+                  </span>
+                );
+              })()}
             </li>
           ))}
         </ul>

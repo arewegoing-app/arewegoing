@@ -199,6 +199,22 @@ export const emailTokens = pgTable('email_tokens', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+export const eventFeedback = pgTable('event_feedback', {
+  id: id(),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  eventInviteId: text('event_invite_id').references(() => eventInvites.id, { onDelete: 'cascade' }),
+  anonId: text('anon_id'),
+  attended: integer('attended'),
+  rating: integer('rating'),
+  note: text('note'),
+  feedbackSentAt: timestamp('feedback_sent_at').notNull(),
+  respondedAt: timestamp('responded_at'),
+}, (t) => ({
+  uniqEventActor: uniqueIndex('event_feedback_event_actor').on(t.eventId, t.eventInviteId, t.anonId),
+}));
+
+export type FeedbackRow = typeof eventFeedback.$inferSelect;
+
 export type User = typeof users.$inferSelect;
 export type Recipient = typeof recipients.$inferSelect;
 export type Event = typeof events.$inferSelect;

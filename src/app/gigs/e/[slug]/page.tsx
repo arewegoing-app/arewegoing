@@ -15,8 +15,10 @@ import {
   resaleListings,
   rsvps,
 } from '@/app/gigs/lib/db/schema';
+import { getReliabilityStats } from '@/app/gigs/lib/memory/stats';
 import { PromoPanel } from './promo-panel';
 import { InviteForm } from './invite-form';
+import type { ReliabilityStatsMap } from './invite-form';
 import { FinalCallForm } from './final-call-form';
 import { ShareButtons } from './share-buttons';
 import { OwedDashboard } from './owed-dashboard';
@@ -63,6 +65,17 @@ export default async function EventDetailPage({
     : await db.select().from(recipients).where(eq(recipients.anonOwnerId, ownerCheck.anonId!));
   const invitedIds = new Set(invitesRows.map((r) => r.recipient?.id));
   const uninvited = allRecipients.filter((r) => !invitedIds.has(r.id));
+
+  // Reliability stats — computed for authenticated buyers only.
+  // Anon owners have no cross-event history, so skip the query.
+  let reliabilityStats: ReliabilityStatsMap | undefined;
+  if (ownerCheck.via === 'user' && ownerCheck.userId && uninvited.length > 0) {
+    const statsMap = await getReliabilityStats(
+      { buyerUserId: ownerCheck.userId },
+      uninvited.map((r) => r.id),
+    );
+    reliabilityStats = Object.fromEntries(statsMap);
+  }
 
   const goingCount = invitesRows.filter((r) => r.rsvp?.status === 'going').length;
   const maybeCount = invitesRows.filter((r) => r.rsvp?.status === 'maybe').length;
@@ -275,7 +288,7 @@ export default async function EventDetailPage({
           <CardTitle className="text-base">Invite people</CardTitle>
         </CardHeader>
         <CardContent>
-          <InviteForm eventId={event.id} recipients={uninvited} />
+          <InviteForm eventId={event.id} recipients={uninvited} reliabilityStats={reliabilityStats} />
         </CardContent>
       </Card>
     </div>

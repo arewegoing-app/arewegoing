@@ -201,3 +201,16 @@ create table if not exists email_tokens (
   consumed_at timestamp,
   created_at timestamp not null default now()
 );
+
+create table if not exists event_feedback (
+  id text primary key,
+  event_id text not null references events(id) on delete cascade,
+  event_invite_id text references event_invites(id) on delete cascade,
+  anon_id text,
+  attended integer,
+  rating integer,
+  note text,
+  feedback_sent_at timestamp not null,
+  responded_at timestamp
+);
+create unique index if not exists event_feedback_event_actor on event_feedback(event_id, event_invite_id, anon_id);
