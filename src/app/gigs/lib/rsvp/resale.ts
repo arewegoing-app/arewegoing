@@ -100,6 +100,7 @@ export async function requestBail(raw: z.input<typeof requestInput>): Promise<Ba
       rid: c.recipient.id,
       eid: row.event.id,
       act: 'bail.claim',
+      lid: listing.id,
       ttlSec: CLAIM_TTL_SEC,
     })}`;
     const tmpl = resaleOfferEmail({
@@ -160,11 +161,20 @@ export async function applyResaleClaimToken(token: string): Promise<ClaimResaleR
     .limit(1);
   if (!claimerInvite) return { ok: false, reason: 'no_invite' };
 
-  const [listing] = await db
-    .select()
-    .from(resaleListings)
-    .where(and(eq(resaleListings.eventId, event.id), eq(resaleListings.state, 'open'))!)
-    .limit(1);
+  // Tokens issued after the lid migration carry the listing id; fall back to
+  // the legacy "first open" lookup for older links still in flight.
+  const listingId = verified.payload.lid;
+  const [listing] = listingId
+    ? await db
+        .select()
+        .from(resaleListings)
+        .where(and(eq(resaleListings.id, listingId), eq(resaleListings.eventId, event.id))!)
+        .limit(1)
+    : await db
+        .select()
+        .from(resaleListings)
+        .where(and(eq(resaleListings.eventId, event.id), eq(resaleListings.state, 'open'))!)
+        .limit(1);
   if (!listing) {
     // Maybe already claimed by this same person.
     const [taken] = await db
@@ -175,13 +185,22 @@ export async function applyResaleClaimToken(token: string): Promise<ClaimResaleR
     if (taken) return { ok: true, eventSlug: event.slug, alreadyClaimed: true };
     return { ok: false, reason: 'no_open_listing' };
   }
+  if (listing.state !== 'open') {
+    if (listing.claimedByInviteId === claimerInvite.id) {
+      return { ok: true, eventSlug: event.slug, alreadyClaimed: true };
+    }
+    return { ok: false, reason: 'listing_unavailable' };
+  }
   if (listing.expiresAt.getTime() < Date.now()) return { ok: false, reason: 'expired' };
 
   // Mark listing claimed + repoint owed row + lock the claimer.
-  await db
+  // Race-guard: only the first concurrent claimer flips state='open' → 'claimed'.
+  const claimedRows = await db
     .update(resaleListings)
     .set({ state: 'claimed', claimedByInviteId: claimerInvite.id, claimedAt: new Date() })
-    .where(eq(resaleListings.id, listing.id));
+    .where(and(eq(resaleListings.id, listing.id), eq(resaleListings.state, 'open'))!)
+    .returning({ id: resaleListings.id });
+  if (claimedRows.length === 0) return { ok: false, reason: 'listing_unavailable' };
   await db
     .update(owed)
     .set({ eventInviteId: claimerInvite.id, paid: 0, paidAt: null, lastRemindedAt: null })

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default async function SignInPage() {
   const session = await auth();
   if (session?.user) redirect('/gigs');
-  const devEnabled = process.env.NODE_ENV !== 'production' || process.env.GIGS_TEST_AUTH === '1';
+  const devEnabled = process.env.NODE_ENV !== 'production';
   const googleEnabled = !!process.env.AUTH_GOOGLE_ID;
   return (
     <div className="mx-auto w-full max-w-sm">

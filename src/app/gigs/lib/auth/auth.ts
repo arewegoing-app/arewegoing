@@ -15,7 +15,7 @@ const providers = [];
 if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
   providers.push(Google({ clientId: process.env.AUTH_GOOGLE_ID, clientSecret: process.env.AUTH_GOOGLE_SECRET }));
 }
-if (process.env.NODE_ENV !== 'production' || process.env.GIGS_TEST_AUTH === '1') {
+if (process.env.NODE_ENV !== 'production') {
   providers.push(
     Credentials({
       id: 'dev',

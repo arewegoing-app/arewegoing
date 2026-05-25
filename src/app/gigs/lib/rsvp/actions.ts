@@ -27,10 +27,18 @@ export async function applyTokenRsvp(token: string): Promise<RsvpResult> {
     .limit(1);
   if (!invite) return { ok: false, reason: 'no_invite' };
 
+  // Scope the consumed-check to the specific action so a recipient who clicked
+  // "Yes" yesterday can still change to "Maybe" via a later email link.
   const [existingToken] = await db
     .select()
     .from(emailTokens)
-    .where(and(eq(emailTokens.recipientId, verified.payload.rid), eq(emailTokens.eventId, verified.payload.eid)))
+    .where(
+      and(
+        eq(emailTokens.recipientId, verified.payload.rid),
+        eq(emailTokens.eventId, verified.payload.eid),
+        eq(emailTokens.action, verified.payload.act),
+      ),
+    )
     .limit(1);
   const alreadyConsumed = !!existingToken?.consumedAt;
 

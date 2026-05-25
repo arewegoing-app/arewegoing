@@ -1,7 +1,11 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 
-const SECRET = process.env.GIGS_TOKEN_SECRET ?? 'dev-only-secret-do-not-use-in-prod';
+const RAW_SECRET = process.env.GIGS_TOKEN_SECRET;
+if (!RAW_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('GIGS_TOKEN_SECRET must be set in production');
+}
+const SECRET = RAW_SECRET ?? 'dev-only-secret-do-not-use-in-prod';
 
 export const tokenPayloadSchema = z.object({
   rid: z.string().min(1),
@@ -16,6 +20,9 @@ export const tokenPayloadSchema = z.object({
     'view',
   ]),
   exp: z.number().int(),
+  // Optional listing id, bound at issue time for bail.claim tokens so a
+  // claim link maps to a specific resale row rather than "any open listing".
+  lid: z.string().min(1).optional(),
 });
 
 export type TokenPayload = z.infer<typeof tokenPayloadSchema>;
@@ -36,6 +43,7 @@ function sign(payload: string): string {
 export function signToken(payload: Omit<TokenPayload, 'exp'> & { ttlSec: number }): string {
   const exp = Math.floor(Date.now() / 1000) + payload.ttlSec;
   const body: TokenPayload = { rid: payload.rid, eid: payload.eid, act: payload.act, exp };
+  if (payload.lid) body.lid = payload.lid;
   const encoded = b64url(Buffer.from(JSON.stringify(body)));
   return `${encoded}.${sign(encoded)}`;
 }

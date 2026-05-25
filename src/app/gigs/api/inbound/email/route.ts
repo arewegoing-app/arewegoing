@@ -19,9 +19,16 @@ const inboundEmailSchema = z.object({
 });
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // Optional bearer-token auth
+  // Bearer-token auth. The webhook provider (e.g. Resend/SendGrid) is the
+  // authority on sender identity via upstream SPF/DKIM; this secret stops
+  // anyone else POSTing forged `from:` payloads that would otherwise be
+  // accepted as that user's ticket purchase. Tests may set INBOUND_AUTH_OFF=1.
   const requiredSecret = process.env.INBOUND_SECRET;
-  if (requiredSecret) {
+  if (!requiredSecret) {
+    if (process.env.INBOUND_AUTH_OFF !== '1') {
+      return NextResponse.json({ error: 'inbound_not_configured' }, { status: 503 });
+    }
+  } else {
     const provided = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
     if (provided !== requiredSecret) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
