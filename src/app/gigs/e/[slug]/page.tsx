@@ -168,6 +168,7 @@ export default async function EventDetailPage({
           eventDate={event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : null}
           eventId={event.id}
           shareUrl={`${process.env.GIGS_APP_URL ?? ''}/gigs/e/${event.slug}`}
+          icsUrl={`/gigs/e/${event.slug}/ics`}
           showRefresh={!!(event.sourceUrl || event.ticketUrl)}
         />
       </header>

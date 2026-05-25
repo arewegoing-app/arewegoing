@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckIcon, MessageCircleIcon, RefreshCwIcon, ShareIcon } from 'lucide-react';
+import { CalendarPlusIcon, CheckIcon, MessageCircleIcon, RefreshCwIcon, ShareIcon } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { refreshEventMetadata } from '../../lib/events/refresh';
+
+// CalendarPlusIcon imported above with other lucide icons.
 
 export function ShareButtons({
   eventTitle,
@@ -13,6 +15,7 @@ export function ShareButtons({
   eventDate,
   eventId,
   shareUrl,
+  icsUrl,
   showRefresh,
 }: {
   eventTitle: string;
@@ -20,6 +23,7 @@ export function ShareButtons({
   eventDate: string | null;
   eventId: string;
   shareUrl: string;
+  icsUrl: string;
   showRefresh: boolean;
 }) {
   const [copied, setCopied] = useState(false);
@@ -61,6 +65,14 @@ export function ShareButtons({
         {copied ? <CheckIcon aria-hidden="true" /> : <ShareIcon aria-hidden="true" />}
         {copied ? 'Copied' : 'Copy link'}
       </Button>
+      <a
+        href={icsUrl}
+        download
+        aria-label="Add to calendar"
+        className={cn(buttonVariants({ variant: 'outline' }))}
+      >
+        <CalendarPlusIcon aria-hidden="true" /> Add to calendar
+      </a>
       {showRefresh && (
         <Button type="button" variant="ghost" disabled={pending} onClick={refresh} aria-label="Refresh metadata from source">
           <RefreshCwIcon aria-hidden="true" className={pending ? 'animate-spin' : undefined} />
