@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '../db/client';
 import { auth } from '../auth/auth';
 import { eventReactions, events } from '../db/schema';
@@ -87,7 +87,7 @@ export async function getReactionTallies(eventIds: string[]): Promise<Map<string
       count: sql<number>`count(*)::int`,
     })
     .from(eventReactions)
-    .where(sql`event_id = any(${eventIds})`)
+    .where(inArray(eventReactions.eventId, eventIds))
     .groupBy(eventReactions.eventId, eventReactions.kind);
 
   const map = new Map<string, ReactionTally>();

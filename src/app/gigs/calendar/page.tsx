@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { and, asc, gte, lte, or, isNull, eq } from 'drizzle-orm';
 import { CheckCircle2Icon, EyeIcon, PlusIcon, TicketIcon, XCircleIcon } from 'lucide-react';
 import { auth } from '../lib/auth/auth';
-import { db } from '../lib/db/client';
+import { db, ensureMigrated } from '../lib/db/client';
 import { events } from '../lib/db/schema';
 import { getReactionTallies } from '../lib/discovery/reactions';
 import { CalendarReactions } from './reactions-row';
@@ -22,6 +22,7 @@ export default async function CalendarPage({
 }: {
   searchParams: Promise<{ reaction?: string; event?: string }>;
 }) {
+  await ensureMigrated();
   const session = await auth();
   const signedIn = !!session?.user?.id;
   const sp = await searchParams;
@@ -46,6 +47,7 @@ export default async function CalendarPage({
       )!,
     )
     .orderBy(asc(events.startsAt));
+
 
   const tallies = await getReactionTallies(upcoming.map((e) => e.id));
   const grouped = groupByWeek(upcoming);
@@ -79,11 +81,7 @@ export default async function CalendarPage({
       {upcoming.length === 0 && (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No upcoming events yet. Hit{' '}
-            <Link href="/gigs/api/cron/discover" className="text-foreground underline">
-              /gigs/api/cron/discover
-            </Link>{' '}
-            to pull the seed Wellington gigs.
+            No upcoming events yet. Try refreshing.
           </CardContent>
         </Card>
       )}

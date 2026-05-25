@@ -1,17 +1,29 @@
 import { notFound, redirect } from 'next/navigation';
-import { eq, and, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '@/app/gigs/lib/auth/auth';
 import { db } from '@/app/gigs/lib/db/client';
-import { events, eventInvites, finalCalls, pledgeCommitments, recipients, rsvps } from '@/app/gigs/lib/db/schema';
+import {
+  events,
+  eventInvites,
+  finalCalls,
+  owed,
+  pledgeCommitments,
+  purchases,
+  recipients,
+  rsvps,
+} from '@/app/gigs/lib/db/schema';
 import { InviteForm } from './invite-form';
 import { FinalCallForm } from './final-call-form';
+import { OwedDashboard } from './owed-dashboard';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default async function EventDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ status?: string; replay?: string }>;
+  searchParams: Promise<{ status?: string; replay?: string; pledge?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/gigs/signin');
@@ -21,15 +33,17 @@ export default async function EventDetailPage({
   const [event] = await db.select().from(events).where(eq(events.slug, slug)).limit(1);
   if (!event) notFound();
   if (event.ownerUserId !== session.user.id) {
-    return <div>Not your event.</div>;
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          Not your event.
+        </CardContent>
+      </Card>
+    );
   }
 
   const invitesRows = await db
-    .select({
-      invite: eventInvites,
-      recipient: recipients,
-      rsvp: rsvps,
-    })
+    .select({ invite: eventInvites, recipient: recipients, rsvp: rsvps })
     .from(eventInvites)
     .leftJoin(recipients, eq(recipients.id, eventInvites.recipientId))
     .leftJoin(rsvps, eq(rsvps.eventInviteId, eventInvites.id))
@@ -43,12 +57,14 @@ export default async function EventDetailPage({
   const maybeCount = invitesRows.filter((r) => r.rsvp?.status === 'maybe').length;
   const outCount = invitesRows.filter((r) => r.rsvp?.status === 'out').length;
   const pendingCount = invitesRows.length - goingCount - maybeCount - outCount;
-  const pledgedCount = invitesRows.filter((r) => r.rsvp?.pledgeState === 'pledged' || r.rsvp?.pledgeState === 'locked').length;
+  const pledgedCount = invitesRows.filter(
+    (r) => r.rsvp?.pledgeState === 'pledged' || r.rsvp?.pledgeState === 'locked',
+  ).length;
 
   const [activeCall] = await db
     .select()
     .from(finalCalls)
-    .where(and(eq(finalCalls.eventId, event.id), eq(finalCalls.status, 'pending')))
+    .where(and(eq(finalCalls.eventId, event.id), eq(finalCalls.status, 'pending'))!)
     .orderBy(sql`triggered_at desc`)
     .limit(1);
 
@@ -57,23 +73,76 @@ export default async function EventDetailPage({
     : [];
   const commitmentByInvite = new Map(commitments.map((c) => [c.eventInviteId, c]));
 
+  const purchasesForEvent = await db
+    .select()
+    .from(purchases)
+    .where(eq(purchases.eventId, event.id));
+  const purchaseIds = purchasesForEvent.map((p) => p.id);
+
+  const owedRows = purchaseIds.length
+    ? await db
+        .select({ owed: owed, recipient: recipients, purchase: purchases })
+        .from(owed)
+        .innerJoin(eventInvites, eq(eventInvites.id, owed.eventInviteId))
+        .innerJoin(recipients, eq(recipients.id, eventInvites.recipientId))
+        .innerJoin(purchases, eq(purchases.id, owed.purchaseId))
+        .where(eq(purchases.eventId, event.id))
+    : [];
+
+  const now = Date.now();
+  const dashboardRows = owedRows.map((r) => ({
+    owedId: r.owed.id,
+    recipientName: r.recipient.displayName,
+    recipientEmail: r.recipient.email,
+    amountCents: r.owed.amountCents,
+    paid: r.owed.paid === 1,
+    daysOutstanding: Math.max(0, Math.floor((now - new Date(r.purchase.createdAt).getTime()) / 86_400_000)),
+    lastRemindedAt: r.owed.lastRemindedAt,
+  }));
+  const totals = dashboardRows.reduce(
+    (acc, r) => ({
+      fronted: acc.fronted + r.amountCents,
+      received: acc.received + (r.paid ? r.amountCents : 0),
+      outstanding: acc.outstanding + (r.paid ? 0 : r.amountCents),
+    }),
+    { fronted: 0, received: 0, outstanding: 0 },
+  );
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold">{event.title}</h1>
-        <p className="text-neutral-400">
-          {event.venue ?? '—'} · {event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ') : 'TBD'}
+        <h1 className="text-2xl font-semibold tracking-tight">{event.title}</h1>
+        <p className="text-sm text-muted-foreground">
+          {event.venue ?? '—'} ·{' '}
+          {event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ') : 'TBD'}
           {event.priceLow ? ` · from $${event.priceLow}` : ''}
         </p>
+        {event.seriesName && (
+          <Badge variant="secondary" className="mt-1">
+            {event.seriesName}
+          </Badge>
+        )}
       </header>
 
       {sp.status && (
-        <div className="rounded bg-emerald-900/40 border border-emerald-700 px-4 py-2 text-sm">
-          RSVP recorded: <strong>{sp.status}</strong>{sp.replay && ' (already counted)'}
+        <div
+          role="status"
+          className="rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200"
+        >
+          RSVP recorded: <strong>{sp.status}</strong>
+          {sp.replay && ' (already counted)'}
+        </div>
+      )}
+      {sp.pledge && (
+        <div
+          role="status"
+          className="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          Pledge {sp.pledge}{sp.replay && ' (already counted)'}
         </div>
       )}
 
-      <section className="grid grid-cols-5 gap-2 text-center">
+      <section className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         <Stat label="Going" value={goingCount} />
         <Stat label="Pledged" value={pledgedCount} />
         <Stat label="Maybe" value={maybeCount} />
@@ -86,59 +155,82 @@ export default async function EventDetailPage({
       )}
 
       {activeCall && (
-        <div className="rounded border border-amber-700/40 bg-amber-900/10 p-4 text-sm">
-          <div className="font-medium text-amber-300">Final call active</div>
-          <div className="text-neutral-300">
-            ${activeCall.pledgeAmount} per ticket · deadline {new Date(activeCall.deadlineAt).toLocaleString('en-NZ')}
-          </div>
-          <div className="text-neutral-400 mt-1">
-            {commitments.filter((c) => c.state === 'confirmed').length} confirmed,{' '}
-            {commitments.filter((c) => c.state === 'asked').length} pending,{' '}
-            {commitments.filter((c) => c.state === 'dropped').length} dropped
-          </div>
-        </div>
+        <Card className="border-amber-300 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/40">
+          <CardHeader>
+            <CardTitle className="text-sm text-amber-900 dark:text-amber-200">Final call active</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm text-amber-900 dark:text-amber-200">
+            <p>
+              ${activeCall.pledgeAmount} per ticket · deadline{' '}
+              {new Date(activeCall.deadlineAt).toLocaleString('en-NZ')}
+            </p>
+            <p className="text-muted-foreground">
+              {commitments.filter((c) => c.state === 'confirmed').length} confirmed,{' '}
+              {commitments.filter((c) => c.state === 'asked').length} pending,{' '}
+              {commitments.filter((c) => c.state === 'dropped').length} dropped
+            </p>
+          </CardContent>
+        </Card>
       )}
 
-      <section>
-        <h2 className="font-medium mb-2">Invited</h2>
-        {invitesRows.length === 0 ? (
-          <p className="text-neutral-400 text-sm">Nobody invited yet.</p>
-        ) : (
-          <ul className="divide-y divide-neutral-800 border border-neutral-800 rounded">
-            {invitesRows.map(({ invite, recipient, rsvp }) => {
-              const c = commitmentByInvite.get(invite.id);
-              const pledgeBadge =
-                rsvp?.pledgeState === 'locked' ? '🔒 locked' :
-                rsvp?.pledgeState === 'pledged' ? '💵 pledged' :
-                c?.state === 'asked' ? '⏳ awaiting pledge' :
-                c?.state === 'dropped' ? '🚪 dropped' : null;
-              return (
-                <li key={invite.id} className="px-4 py-2 flex justify-between text-sm">
-                  <span>{recipient?.displayName} <span className="text-neutral-500">({recipient?.email})</span></span>
-                  <span className="text-neutral-400">
-                    {rsvp?.status ?? 'pending'}
-                    {pledgeBadge && <span className="ml-2">{pledgeBadge}</span>}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+      {dashboardRows.length > 0 && <OwedDashboard rows={dashboardRows} totals={totals} />}
 
-      <section>
-        <h2 className="font-medium mb-2">Invite people</h2>
-        <InviteForm eventId={event.id} recipients={uninvited} />
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Invited</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {invitesRows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nobody invited yet.</p>
+          ) : (
+            <ul className="divide-y divide-border rounded-md border">
+              {invitesRows.map(({ invite, recipient, rsvp }) => {
+                const c = commitmentByInvite.get(invite.id);
+                const pledgeBadge =
+                  rsvp?.pledgeState === 'locked'
+                    ? '🔒 locked'
+                    : rsvp?.pledgeState === 'pledged'
+                      ? '💵 pledged'
+                      : c?.state === 'asked'
+                        ? '⏳ awaiting pledge'
+                        : c?.state === 'dropped'
+                          ? '🚪 dropped'
+                          : null;
+                return (
+                  <li key={invite.id} className="flex flex-wrap justify-between gap-2 px-4 py-2 text-sm">
+                    <span>
+                      {recipient?.displayName}{' '}
+                      <span className="text-muted-foreground">({recipient?.email})</span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      {rsvp?.status ?? 'pending'}
+                      {pledgeBadge && <span className="ml-2">{pledgeBadge}</span>}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Invite people</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <InviteForm eventId={event.id} recipients={uninvited} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded border border-neutral-800 p-3">
-      <div className="text-xl font-mono">{value}</div>
-      <div className="text-xs text-neutral-400">{label}</div>
+    <div className="rounded-md border bg-card p-3 text-center">
+      <div className="font-mono text-xl">{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   );
 }

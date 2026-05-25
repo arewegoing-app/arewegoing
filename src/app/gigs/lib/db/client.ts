@@ -40,9 +40,18 @@ export const db = cached.db;
 
 export async function ensureMigrated(): Promise<void> {
   if (global.__gigsMigrated) return;
-  const sql = readFileSync(MIGRATION_SQL_PATH, 'utf8');
-  await cached.pg.exec(sql);
+  const sqlText = readFileSync(MIGRATION_SQL_PATH, 'utf8');
+  await cached.pg.exec(sqlText);
   global.__gigsMigrated = true;
+  // Seed the calendar with known events on first init so /gigs renders content
+  // without any network fetch. Idempotent: skipped if events table already has rows.
+  try {
+    const { seedKnownEventsIfEmpty } = await import('../discovery/seed-events');
+    await seedKnownEventsIfEmpty();
+  } catch (err) {
+    // Don't block the migration if seed fails — the cron can still backfill.
+    console.error('[gigs] seed skipped:', err instanceof Error ? err.message : err);
+  }
 }
 
 export { schema };
