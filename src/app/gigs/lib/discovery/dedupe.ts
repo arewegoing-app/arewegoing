@@ -1,19 +1,20 @@
 import type { Event } from '../db/schema';
 
 /**
- * Collapse same-real-world events that appear under multiple source URLs
- * (e.g. Bryan Gee on both Humanitix and Under the Radar; Cuba St Sunday
- * Sessions listed under different titles on each platform).
+ * Collapse same-real-world events that appear under multiple source URLs.
  *
- * Two events match if EITHER:
- *   1. Same seriesName + same calendar day (high-confidence fast path —
- *      promoters use the same series name across platforms, e.g. "Sunday
- *      Sessions"), OR
- *   2. Same venue + same calendar day (catches cases where two listings
- *      describe the same gig with very different titles but identical venue
- *      + date — the real-world signal that pins identity), OR
- *   3. Normalised title tokens + same calendar day (fallback for events
- *      with no series/venue metadata).
+ * Match tiers, strongest first:
+ *   1. Same venue + same start time (within 1h bucket) — strongest signal.
+ *      Two listings describing a 9pm Saturday gig at San Fran are the same
+ *      gig regardless of how the titles differ. Avoids the false-positive
+ *      where two separate shows at the same venue on the same calendar day
+ *      get merged.
+ *   2. Same seriesName + same calendar day — promoters reuse series names
+ *      across platforms ("Sunday Sessions", "Goodthings", "Rhythm Output").
+ *   3. Same venue + same calendar day — fallback when one listing has no
+ *      time. Looser than #1 but tighter than nothing.
+ *   4. Title tokens + same calendar day — last resort for events with no
+ *      venue or series metadata.
  *
  * Picks one canonical row per group — preferring UTR > Humanitix > Moshtix
  * > Flicket > TicketFairy, then by latest discoveredAt.
@@ -51,21 +52,31 @@ export function dedupeEvents<E extends EventLike>(events: E[]): E[] {
 }
 
 function makeKey(e: EventLike): string {
-  const day = e.startsAt ? new Date(e.startsAt).toISOString().slice(0, 10) : 'tbd';
+  const startsAt = e.startsAt ? new Date(e.startsAt) : null;
+  const day = startsAt ? startsAt.toISOString().slice(0, 10) : 'tbd';
+  const venueKey = e.venue ? e.venue.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() : null;
 
-  // 1. Series + day match — promoters reuse series names across platforms.
+  // 1. Venue + start time (hour bucket) — strongest. Same room + same hour
+  //    is almost certainly the same gig even if the listings have different
+  //    titles, promoter framing, or pricing tiers. Two SEPARATE shows at the
+  //    same venue on different times (early + late) stay distinct.
+  if (venueKey && startsAt) {
+    const hour = `${day}T${String(startsAt.getUTCHours()).padStart(2, '0')}`;
+    return `vt|${hour}|${venueKey}`;
+  }
+
+  // 2. Series + day — promoters reuse series names across platforms.
   if (e.seriesName) {
     const s = e.seriesName.toLowerCase().replace(/\s+/g, ' ').trim();
     return `series|${day}|${s}`;
   }
 
-  // 2. Venue + day match — same room on same night is almost certainly one gig.
-  if (e.venue) {
-    const v = e.venue.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-    return `venue|${day}|${v}`;
+  // 3. Venue + day (no time on one of the rows) — looser fallback.
+  if (venueKey) {
+    return `venue|${day}|${venueKey}`;
   }
 
-  // 3. Token fallback — normalise the title, drop filler, sort.
+  // 4. Title tokens + day — last resort.
   const norm = e.title
     .toLowerCase()
     .replace(/['']/g, '')
