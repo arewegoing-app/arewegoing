@@ -65,7 +65,7 @@ export function parseHtml(html: string, url: URL): IngestResult {
     title: fromJsonLd.title ?? fromOg.title,
     venue: fromJsonLd.venue ?? sourceRefined.venue,
     city: fromJsonLd.city ?? sourceRefined.city,
-    startsAt: fromJsonLd.startsAt,
+    startsAt: fromJsonLd.startsAt ?? sourceRefined.startsAt,
     priceLow: fromJsonLd.priceLow,
     imageUrl: fromJsonLd.imageUrl ?? fromOg.imageUrl,
     ticketUrl: url.toString(),

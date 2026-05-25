@@ -32,7 +32,7 @@ export async function seedKnownEventsIfEmpty(): Promise<{ inserted: number; live
             title: result.metadata.title,
             venue,
             city: result.metadata.city ?? k.city,
-            startsAt: result.metadata.startsAt ? new Date(result.metadata.startsAt) : new Date(k.startsAtUTC),
+            startsAt: result.metadata.startsAt ? new Date(result.metadata.startsAt) : null,
             priceLow: result.metadata.priceLow ?? k.priceLow ?? null,
             imageUrl: result.metadata.imageUrl ?? null,
             seriesName: series,
@@ -42,13 +42,15 @@ export async function seedKnownEventsIfEmpty(): Promise<{ inserted: number; live
       } catch {
         // fall through to fallback
       }
+      // Network/parse failed. Don't ship a wrong date — the hardcoded value is a
+      // guess. Better to show "TBD" so users notice and re-trigger ingest later.
       return {
         source: k.source,
         sourceUrl: k.sourceUrl,
         title: k.title,
         venue: k.venue,
         city: k.city,
-        startsAt: new Date(k.startsAtUTC),
+        startsAt: null as Date | null,
         priceLow: k.priceLow ?? null,
         imageUrl: null as string | null,
         seriesName: k.seriesName ?? null,

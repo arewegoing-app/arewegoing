@@ -1,16 +1,30 @@
-const META_RE = /<meta\s+[^>]*?(?:property|name)=["']([^"']+)["'][^>]*?content=["']([^"']+)["'][^>]*\/?>/gi;
-const META_RE_REVERSED = /<meta\s+[^>]*?content=["']([^"']+)["'][^>]*?(?:property|name)=["']([^"']+)["'][^>]*\/?>/gi;
-const TITLE_RE = /<title[^>]*>([\s\S]*?)<\/title>/i;
+// Quote-aware meta extractor. Attribute content delimited by " can contain ',
+// and vice versa, so we need two passes — one per delimiter — and we keep
+// whichever value comes first.
+
+const META_DQ = /<meta\s+([^>]*)>/gi;
 
 export function extractMeta(html: string): Record<string, string> {
   const meta: Record<string, string> = {};
-  for (const m of html.matchAll(META_RE)) meta[m[1].toLowerCase()] = decodeEntities(m[2]);
-  for (const m of html.matchAll(META_RE_REVERSED)) {
-    if (!meta[m[2].toLowerCase()]) meta[m[2].toLowerCase()] = decodeEntities(m[1]);
+  for (const tag of html.matchAll(META_DQ)) {
+    const attrs = tag[1];
+    const key = readAttr(attrs, 'property') ?? readAttr(attrs, 'name');
+    const value = readAttr(attrs, 'content');
+    if (key && value && meta[key.toLowerCase()] === undefined) {
+      meta[key.toLowerCase()] = decodeEntities(value);
+    }
   }
-  const t = html.match(TITLE_RE);
-  if (t) meta['__title'] = decodeEntities(t[1].trim());
+  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  if (title) meta['__title'] = decodeEntities(title[1].trim());
   return meta;
+}
+
+function readAttr(attrs: string, name: string): string | undefined {
+  const dq = attrs.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i'));
+  if (dq) return dq[1];
+  const sq = attrs.match(new RegExp(`${name}\\s*=\\s*'([^']*)'`, 'i'));
+  if (sq) return sq[1];
+  return undefined;
 }
 
 function decodeEntities(s: string): string {
