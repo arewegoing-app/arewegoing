@@ -24,15 +24,18 @@ export async function seedKnownEventsIfEmpty(): Promise<{ inserted: number; live
           new Promise<null>((res) => setTimeout(() => res(null), FETCH_TIMEOUT_MS)),
         ]);
         if (result && 'ok' in result && result.ok) {
+          // Live data wins per-field. If a field comes back undefined/null,
+          // fall back to the hardcoded snapshot — never erase a known value
+          // with nothing.
           const series = detectSeries(result.metadata.title) ?? k.seriesName ?? null;
           const venue = normalizeVenue(result.metadata.venue) ?? k.venue;
           return {
             source: result.metadata.source,
             sourceUrl: k.sourceUrl,
-            title: result.metadata.title,
-            venue,
+            title: result.metadata.title || k.title,
+            venue: venue || k.venue,
             city: result.metadata.city ?? k.city,
-            startsAt: result.metadata.startsAt ? new Date(result.metadata.startsAt) : null,
+            startsAt: result.metadata.startsAt ? new Date(result.metadata.startsAt) : new Date(k.startsAtUTC),
             priceLow: result.metadata.priceLow ?? k.priceLow ?? null,
             imageUrl: result.metadata.imageUrl ?? null,
             seriesName: series,
