@@ -91,6 +91,20 @@ export const rsvps = pgTable('rsvps', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+export const conditionKindEnum = pgEnum('condition_kind', ['min_going', 'price_ceiling', 'requires_promo']);
+
+export const rsvpConditions = pgTable('rsvp_conditions', {
+  id: id(),
+  eventInviteId: text('event_invite_id').notNull().references(() => eventInvites.id, { onDelete: 'cascade' }),
+  kind: conditionKindEnum('kind').notNull(),
+  intValue: integer('int_value'),
+  boolValue: integer('bool_value'),
+  satisfied: integer('satisfied').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export type RsvpCondition = typeof rsvpConditions.$inferSelect;
+
 export const finalCallStateEnum = pgEnum('final_call_state', ['pending', 'closed']);
 export const pledgeCommitmentStateEnum = pgEnum('pledge_commitment_state', ['asked', 'confirmed', 'dropped']);
 

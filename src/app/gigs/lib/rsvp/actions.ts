@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { eventInvites, rsvps, emailTokens } from '../db/schema';
 import { verifyToken } from '../tokens/token-service';
+import { evaluateEventConditions } from './conditions';
 
 export type RsvpResult =
   | { ok: true; status: 'going' | 'maybe' | 'out'; alreadyConsumed: boolean }
@@ -58,5 +59,9 @@ export async function applyTokenRsvp(token: string): Promise<RsvpResult> {
     .onConflictDoNothing();
 
   await db.update(eventInvites).set({ lastClickedAt: new Date() }).where(eq(eventInvites.id, invite.id));
+
+  // Any rsvp change can affect conditional invites elsewhere on this event.
+  await evaluateEventConditions(invite.eventId);
+
   return { ok: true, status, alreadyConsumed: false };
 }

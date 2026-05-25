@@ -90,6 +90,20 @@ create table if not exists rsvps (
 );
 
 do $$ begin
+  create type condition_kind as enum ('min_going', 'price_ceiling', 'requires_promo');
+exception when duplicate_object then null; end $$;
+
+create table if not exists rsvp_conditions (
+  id text primary key,
+  event_invite_id text not null references event_invites(id) on delete cascade,
+  kind condition_kind not null,
+  int_value integer,
+  bool_value integer,
+  satisfied integer not null default 0,
+  created_at timestamp not null default now()
+);
+
+do $$ begin
   create type final_call_state as enum ('pending', 'closed');
 exception when duplicate_object then null; end $$;
 
