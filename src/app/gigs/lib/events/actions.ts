@@ -1,0 +1,98 @@
+'use server';
+
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
+import { eq, and, inArray } from 'drizzle-orm';
+import { customAlphabet } from 'nanoid';
+import { db } from '../db/client';
+import { events, recipients, eventInvites, users } from '../db/schema';
+import { auth } from '../auth/auth';
+import { signToken } from '../tokens/token-service';
+import { sendEmail } from '../notifications/email';
+import { inviteEmail } from '../notifications/templates';
+
+const makeSlug = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
+
+async function requireBuyer() {
+  const session = await auth();
+  if (!session?.user?.id) redirect('/gigs/signin');
+  return session.user;
+}
+
+const createEventInput = z.object({
+  title: z.string().min(1).max(200),
+  venue: z.string().max(200).optional(),
+  city: z.string().max(100).default('Wellington'),
+  startsAt: z.string().optional(),
+  ticketUrl: z.url().optional().or(z.literal('')),
+  priceLow: z.coerce.number().int().nonnegative().optional(),
+});
+
+export async function createEvent(formData: FormData) {
+  const buyer = await requireBuyer();
+  const raw = Object.fromEntries(formData.entries());
+  const parsed = createEventInput.parse({ ...raw, ticketUrl: raw.ticketUrl || undefined });
+  const slug = makeSlug();
+  const [event] = await db.insert(events).values({
+    slug,
+    ownerUserId: buyer.id,
+    title: parsed.title,
+    venue: parsed.venue ?? null,
+    city: parsed.city,
+    startsAt: parsed.startsAt ? new Date(parsed.startsAt) : null,
+    ticketUrl: parsed.ticketUrl || null,
+    priceLow: parsed.priceLow ?? null,
+  }).returning();
+  redirect(`/gigs/e/${event.slug}`);
+}
+
+const addRecipientInput = z.object({
+  email: z.email(),
+  displayName: z.string().min(1).max(100),
+});
+
+export async function addRecipient(formData: FormData) {
+  const buyer = await requireBuyer();
+  const parsed = addRecipientInput.parse(Object.fromEntries(formData.entries()));
+  await db.insert(recipients).values({
+    ownerUserId: buyer.id,
+    email: parsed.email.toLowerCase(),
+    displayName: parsed.displayName,
+  }).onConflictDoNothing();
+}
+
+const sendInvitesInput = z.object({
+  eventId: z.string().min(1),
+  recipientIds: z.array(z.string().min(1)).min(1),
+});
+
+const APP_URL = process.env.GIGS_APP_URL ?? 'http://localhost:3000';
+const INVITE_TTL_SEC = 60 * 60 * 24 * 30;
+
+export async function sendInvites(input: { eventId: string; recipientIds: string[] }) {
+  const buyer = await requireBuyer();
+  const parsed = sendInvitesInput.parse(input);
+  const [event] = await db.select().from(events).where(and(eq(events.id, parsed.eventId), eq(events.ownerUserId, buyer.id))).limit(1);
+  if (!event) throw new Error('Event not found');
+  const recips = await db.select().from(recipients).where(and(eq(recipients.ownerUserId, buyer.id), inArray(recipients.id, parsed.recipientIds)));
+  const [buyerRow] = await db.select().from(users).where(eq(users.id, buyer.id)).limit(1);
+  const sent: string[] = [];
+  for (const r of recips) {
+    await db.insert(eventInvites).values({ eventId: event.id, recipientId: r.id }).onConflictDoNothing();
+    const links = {
+      in: `${APP_URL}/gigs/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.in', ttlSec: INVITE_TTL_SEC })}`,
+      maybe: `${APP_URL}/gigs/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.maybe', ttlSec: INVITE_TTL_SEC })}`,
+      out: `${APP_URL}/gigs/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.out', ttlSec: INVITE_TTL_SEC })}`,
+      view: `${APP_URL}/gigs/e/${event.slug}?t=${signToken({ rid: r.id, eid: event.id, act: 'view', ttlSec: INVITE_TTL_SEC })}`,
+    };
+    const tmpl = inviteEmail({
+      buyer: { name: buyerRow?.name ?? '', email: buyerRow?.email ?? '' },
+      recipient: r,
+      event,
+      links,
+    });
+    const result = await sendEmail({ to: r.email, subject: tmpl.subject, html: tmpl.html, text: tmpl.text });
+    sent.push(result.id);
+  }
+  return { sent: sent.length };
+}
