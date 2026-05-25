@@ -2,20 +2,31 @@ import type { Event } from '../db/schema';
 
 /**
  * Collapse same-real-world events that appear under multiple source URLs
- * (e.g. Bryan Gee on both Humanitix and Under the Radar). Two events are
- * treated as the same if their normalised title key matches AND they're on
- * the same calendar day in NZ.
+ * (e.g. Bryan Gee on both Humanitix and Under the Radar; Cuba St Sunday
+ * Sessions listed under different titles on each platform).
  *
- * Picks one canonical row per group — preferring the UTR entry when present
- * (its metadata is usually richer for Wellington gigs), then by latest
- * discoveredAt timestamp.
+ * Two events match if EITHER:
+ *   1. Same seriesName + same calendar day (high-confidence fast path —
+ *      promoters use the same series name across platforms, e.g. "Sunday
+ *      Sessions"), OR
+ *   2. Same venue + same calendar day (catches cases where two listings
+ *      describe the same gig with very different titles but identical venue
+ *      + date — the real-world signal that pins identity), OR
+ *   3. Normalised title tokens + same calendar day (fallback for events
+ *      with no series/venue metadata).
+ *
+ * Picks one canonical row per group — preferring UTR > Humanitix > Moshtix
+ * > Flicket > TicketFairy, then by latest discoveredAt.
  */
-export function dedupeEvents<E extends Pick<Event, 'id' | 'title' | 'startsAt' | 'source' | 'discoveredAt'>>(
-  events: E[],
-): E[] {
+type EventLike = Pick<
+  Event,
+  'id' | 'title' | 'startsAt' | 'source' | 'discoveredAt' | 'seriesName' | 'venue'
+>;
+
+export function dedupeEvents<E extends EventLike>(events: E[]): E[] {
   const groups = new Map<string, E[]>();
   for (const e of events) {
-    const key = makeKey(e.title, e.startsAt);
+    const key = makeKey(e);
     const list = groups.get(key) ?? [];
     list.push(e);
     groups.set(key, list);
@@ -39,10 +50,23 @@ export function dedupeEvents<E extends Pick<Event, 'id' | 'title' | 'startsAt' |
   return result;
 }
 
-function makeKey(title: string, startsAt: Date | null): string {
-  // Normalise the title: lowercase, expand city abbreviations, drop common
-  // promoter filler words, drop stop words, keep just the strong tokens.
-  const norm = title
+function makeKey(e: EventLike): string {
+  const day = e.startsAt ? new Date(e.startsAt).toISOString().slice(0, 10) : 'tbd';
+
+  // 1. Series + day match — promoters reuse series names across platforms.
+  if (e.seriesName) {
+    const s = e.seriesName.toLowerCase().replace(/\s+/g, ' ').trim();
+    return `series|${day}|${s}`;
+  }
+
+  // 2. Venue + day match — same room on same night is almost certainly one gig.
+  if (e.venue) {
+    const v = e.venue.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    return `venue|${day}|${v}`;
+  }
+
+  // 3. Token fallback — normalise the title, drop filler, sort.
+  const norm = e.title
     .toLowerCase()
     .replace(/['']/g, '')
     .replace(/\bwlg\b/g, 'wellington')
@@ -54,8 +78,7 @@ function makeKey(title: string, startsAt: Date | null): string {
     .filter((t) => t.length >= 3)
     .sort()
     .join(' ');
-  const day = startsAt ? new Date(startsAt).toISOString().slice(0, 10) : 'tbd';
-  return `${day}|${norm}`;
+  return `title|${day}|${norm}`;
 }
 
 function sourceWeight(source: string): number {
