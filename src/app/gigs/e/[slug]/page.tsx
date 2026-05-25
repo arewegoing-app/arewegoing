@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { auth } from '@/app/gigs/lib/auth/auth';
 import { checkEventOwner } from '@/app/gigs/lib/auth/owner';
 import { db, ensureMigrated } from '@/app/gigs/lib/db/client';
@@ -7,6 +7,7 @@ import {
   events,
   eventInvites,
   finalCalls,
+  groupMembers,
   owed,
   pledgeCommitments,
   promoOutreach,
@@ -16,6 +17,8 @@ import {
   rsvps,
 } from '@/app/gigs/lib/db/schema';
 import { getReliabilityStats } from '@/app/gigs/lib/memory/stats';
+import { listMyGroups } from '@/app/gigs/lib/groups/actions';
+import type { GroupWithCount } from '@/app/gigs/lib/groups/actions';
 import { PromoPanel } from './promo-panel';
 import { InviteForm } from './invite-form';
 import type { ReliabilityStatsMap } from './invite-form';
@@ -77,6 +80,33 @@ export default async function EventDetailPage({
       uninvited.map((r) => r.id),
     );
     reliabilityStats = Object.fromEntries(statsMap);
+  }
+
+  // Groups — used to power the group filter in InviteForm.
+  let myGroups: GroupWithCount[] = [];
+  let groupMembersMap: Record<string, string[]> = {};
+  try {
+    myGroups = await listMyGroups();
+    // Build a map of groupId → recipientIds so InviteForm can filter client-side.
+    if (myGroups.length >= 2 && uninvited.length > 0) {
+      const groupIds = myGroups.map((g) => g.id);
+      const uninvitedIds = uninvited.map((r) => r.id);
+      const memberRows = await db
+        .select({ groupId: groupMembers.groupId, recipientId: groupMembers.recipientId })
+        .from(groupMembers)
+        .where(
+          and(
+            inArray(groupMembers.groupId, groupIds),
+            inArray(groupMembers.recipientId, uninvitedIds),
+          ),
+        );
+      for (const row of memberRows) {
+        if (!groupMembersMap[row.groupId]) groupMembersMap[row.groupId] = [];
+        groupMembersMap[row.groupId].push(row.recipientId);
+      }
+    }
+  } catch {
+    // no_identity in some auth states — safe to skip
   }
 
   const goingCount = invitesRows.filter((r) => r.rsvp?.status === 'going').length;
@@ -301,7 +331,13 @@ export default async function EventDetailPage({
           <CardTitle className="text-base">Invite people</CardTitle>
         </CardHeader>
         <CardContent>
-          <InviteForm eventId={event.id} recipients={uninvited} reliabilityStats={reliabilityStats} />
+          <InviteForm
+            eventId={event.id}
+            recipients={uninvited}
+            reliabilityStats={reliabilityStats}
+            groups={myGroups}
+            groupMembers={groupMembersMap}
+          />
         </CardContent>
       </Card>
     </div>

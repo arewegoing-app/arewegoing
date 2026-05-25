@@ -6,9 +6,16 @@ import { sendInvites } from '@/app/gigs/lib/events/actions';
 import { addRecipient } from '@/app/gigs/lib/events/actions';
 import type { Recipient } from '@/app/gigs/lib/db/schema';
 import type { ReliabilityStats } from '@/app/gigs/lib/memory/stats';
+import type { GroupWithCount } from '@/app/gigs/lib/groups/actions';
 
 /** Serialisable snapshot of ReliabilityStats passed from the server page. */
 export type ReliabilityStatsMap = Record<string, ReliabilityStats>;
+
+/** Serialisable group summary for the filter dropdown. */
+export type GroupSummary = Pick<GroupWithCount, 'id' | 'name' | 'memberCount'>;
+
+// We need the group members to filter recipients — passed as a serialisable map.
+export type GroupMemberMap = Record<string, string[]>; // groupId → recipientId[]
 
 function reliabilityDot(s: ReliabilityStats): { dot: string; title: string } {
   const avgLabel = s.avgDaysToPay !== null ? `avg ${s.avgDaysToPay.toFixed(1)} days to pay` : 'no pay history';
@@ -22,13 +29,20 @@ export function InviteForm({
   eventId,
   recipients,
   reliabilityStats,
+  groups = [],
+  groupMembers = {},
 }: {
   eventId: string;
   recipients: Recipient[];
   reliabilityStats?: ReliabilityStatsMap;
+  /** Groups owned by the current buyer. Show filter when 2+. */
+  groups?: GroupSummary[];
+  /** Map of groupId → recipientIds for client-side filtering. */
+  groupMembers?: GroupMemberMap;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
+  const [activeGroupId, setActiveGroupId] = useState<string>('');
   const router = useRouter();
 
   const toggle = (id: string) => {
@@ -37,11 +51,41 @@ export function InviteForm({
     setSelected(next);
   };
 
+  // Filter the recipient list by the active group when one is selected.
+  const visibleRecipients = activeGroupId
+    ? recipients.filter((r) => groupMembers[activeGroupId]?.includes(r.id))
+    : recipients;
+
   return (
     <div className="space-y-4">
-      {recipients.length > 0 ? (
+      {/* Group filter — only shown when the buyer has 2+ groups */}
+      {groups.length >= 2 && (
+        <div className="flex items-center gap-2 text-sm">
+          <label htmlFor="group-filter" className="text-muted-foreground">
+            Filter by group:
+          </label>
+          <select
+            id="group-filter"
+            value={activeGroupId}
+            onChange={(e) => {
+              setActiveGroupId(e.target.value);
+              setSelected(new Set());
+            }}
+            className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
+          >
+            <option value="">All recipients</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name} ({g.memberCount})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {visibleRecipients.length > 0 ? (
         <ul className="space-y-1">
-          {recipients.map((r) => (
+          {visibleRecipients.map((r) => (
             <li key={r.id} className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
               <span>{r.displayName} <span className="text-neutral-500">({r.email})</span></span>
@@ -61,7 +105,11 @@ export function InviteForm({
           ))}
         </ul>
       ) : (
-        <p className="text-neutral-400 text-sm">No recipients in your address book. Add one below.</p>
+        <p className="text-neutral-400 text-sm">
+          {activeGroupId
+            ? 'Nobody from this group is left to invite.'
+            : 'No recipients in your address book. Add one below.'}
+        </p>
       )}
 
       <button

@@ -5,12 +5,13 @@ import { z } from 'zod';
 import { eq, and, inArray } from 'drizzle-orm';
 import { customAlphabet } from 'nanoid';
 import { db } from '../db/client';
-import { events, recipients, eventInvites, users } from '../db/schema';
+import { events, recipients, eventInvites, users, groupMembers } from '../db/schema';
 import { auth } from '../auth/auth';
 import { getOrSetAnonId, readAnonId } from '../anon/identity';
 import { signToken } from '../tokens/token-service';
 import { sendEmail } from '../notifications/email';
 import { inviteEmail } from '../notifications/templates';
+import { getOrCreateDefaultGroup } from '../groups/actions';
 
 const makeSlug = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
 
@@ -65,12 +66,21 @@ export async function addRecipient(formData: FormData) {
   const id = await ownerIdentity();
   if (!id.userId && !id.anonId) throw new Error('no_identity');
   const parsed = addRecipientInput.parse(Object.fromEntries(formData.entries()));
-  await db.insert(recipients).values({
+  const [recipient] = await db.insert(recipients).values({
     ownerUserId: id.userId,
     anonOwnerId: id.anonId,
     email: parsed.email.toLowerCase(),
     displayName: parsed.displayName,
-  }).onConflictDoNothing();
+  }).onConflictDoNothing().returning();
+
+  // Automatically add the new recipient to the buyer's default group.
+  if (recipient) {
+    const defaultGroup = await getOrCreateDefaultGroup();
+    await db
+      .insert(groupMembers)
+      .values({ groupId: defaultGroup.id, recipientId: recipient.id })
+      .onConflictDoNothing();
+  }
 }
 
 const sendInvitesInput = z.object({
