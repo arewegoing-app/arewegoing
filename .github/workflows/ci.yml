@@ -72,9 +72,6 @@ jobs:
         run: pnpm exec playwright install-deps chromium
 
       - name: E2E (Playwright)
-        # Allow failure until the suite is verified green end-to-end.
-        # Track removal: see PR #5 follow-ups list.
-        continue-on-error: true
         run: pnpm test:e2e
 
       - if: failure() || cancelled()
