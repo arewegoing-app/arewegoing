@@ -1,0 +1,10 @@
+# Default owner for everything not matched below.
+*                       @olitreadwell
+
+# CI + repo plumbing
+/.github/               @olitreadwell
+
+# Docs + governance
+/PROPOSAL.md            @olitreadwell
+/SPEC.md                @olitreadwell
+/README.md              @olitreadwell

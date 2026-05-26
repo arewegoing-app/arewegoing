@@ -15,6 +15,12 @@ const providers = [];
 if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
   providers.push(Google({ clientId: process.env.AUTH_GOOGLE_ID, clientSecret: process.env.AUTH_GOOGLE_SECRET }));
 }
+// The dev credentials provider auto-creates a `users` row for any email.
+// Gated on NODE_ENV !== 'production'. Vercel sets NODE_ENV=production for
+// both preview and prod deployments (VERCEL_ENV distinguishes them), so this
+// provider is unreachable on any Vercel deployment. Do not loosen this gate
+// without adding a separate VERCEL_ENV check, or anyone could mint an account
+// on prod by hitting /signin.
 if (process.env.NODE_ENV !== 'production') {
   providers.push(
     Credentials({

@@ -1,6 +1,7 @@
 import { eq, isNotNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { db } from '../db/client';
+import { log } from '../log';
 import { artists, artistSubscriptions, eventArtistLinks, events } from '../db/schema';
 import { sendEmail } from '../notifications/email';
 import { fetchArtistNZEvents, type ParsedArtistEvent } from './songkick';
@@ -27,13 +28,14 @@ const APP_URL = process.env.GIGS_APP_URL ?? 'http://localhost:3000';
 export async function dispatchArtistNotifications(
   now: Date = new Date(),
   fetchImpl: (artistId: string) => Promise<ParsedArtistEvent[]> = fetchArtistNZEvents,
-): Promise<{ sent: number }> {
+): Promise<{ sent: number; failures: number }> {
   const subs = await db
     .select()
     .from(artistSubscriptions)
     .where(isNotNull(artistSubscriptions.email));
 
   let sent = 0;
+  let failures = 0;
 
   for (const sub of subs) {
     if (!sub.email) continue;
@@ -68,7 +70,7 @@ export async function dispatchArtistNotifications(
       await ensureArtistLink(eventRow.id, artist.id);
 
       const dateLabel = formatDate(skEvent.startDate);
-      const url = `${APP_URL}/gigs/e/${eventRow.slug}`;
+      const url = `${APP_URL}/e/${eventRow.slug}`;
       const subject = `${artist.name} is playing in NZ: ${skEvent.title}`;
       const text = [
         'Hey,',
@@ -84,22 +86,30 @@ export async function dispatchArtistNotifications(
         .join('\n');
       const html = `<p><strong>${escapeHtml(artist.name)}</strong> has an upcoming NZ show:</p><p><strong>${escapeHtml(skEvent.title)}</strong>${skEvent.venue ? ` at ${escapeHtml(skEvent.venue)}, ${escapeHtml(skEvent.city)}` : ''}<br>${escapeHtml(dateLabel)}</p><p><a href="${url}">See it →</a></p>`;
 
-      await sendEmail({ to: sub.email, subject, text, html });
-      sent++;
-
-      if (skEvent.startDate && new Date(skEvent.startDate) > latestDate) {
-        latestDate = new Date(skEvent.startDate);
+      try {
+        await sendEmail({ to: sub.email, subject, text, html });
+        sent++;
+        if (skEvent.startDate && new Date(skEvent.startDate) > latestDate) {
+          latestDate = new Date(skEvent.startDate);
+        }
+      } catch (err) {
+        log.error({ err, subscriptionId: sub.id, artistId: artist.id, eventTitle: skEvent.title }, 'cron.artists.send_failed');
+        failures++;
       }
     }
 
-    // Advance watermark.
-    await db
-      .update(artistSubscriptions)
-      .set({ notifiedThroughAt: latestDate })
-      .where(eq(artistSubscriptions.id, sub.id));
+    // Advance watermark only when latestDate moved past the original watermark,
+    // meaning at least one send succeeded. Failed events remain above the
+    // watermark and will be retried on the next run.
+    if (latestDate > watermark) {
+      await db
+        .update(artistSubscriptions)
+        .set({ notifiedThroughAt: latestDate })
+        .where(eq(artistSubscriptions.id, sub.id));
+    }
   }
 
-  return { sent };
+  return { sent, failures };
 }
 
 // ---------------------------------------------------------------------------

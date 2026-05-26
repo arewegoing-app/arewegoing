@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureMigrated } from '@/lib/db/client';
 import { dispatchOverdueReminders } from '@/lib/notifications/reminders';
+import { requireCronAuth } from '@/lib/auth/cron';
 import { log } from '@/lib/log';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const requiredSecret = process.env.CRON_SECRET;
-  if (requiredSecret) {
-    const provided = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? req.nextUrl.searchParams.get('s');
-    if (provided !== requiredSecret) {
-      log.warn({ job: 'reminders' }, 'cron.unauthorized');
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-    }
-  }
+  const authError = requireCronAuth(req, 'reminders');
+  if (authError) return authError;
   log.info({ job: 'reminders' }, 'cron.reminders.start');
   await ensureMigrated();
   const result = await dispatchOverdueReminders();

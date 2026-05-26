@@ -47,6 +47,17 @@ function sign(payload: string): string {
   return b64url(createHmac('sha256', getSecret()).update(payload).digest());
 }
 
+/**
+ * Issue a signed token for a single recipient action on a single event.
+ *
+ * `ttlSec` is in **seconds** (not milliseconds). The expiry is stamped as a
+ * Unix epoch integer (`exp`) so the format stays URL-safe without a date
+ * library on decode.
+ *
+ * The HMAC secret is loaded lazily on first call. In production the process
+ * throws immediately if `GIGS_TOKEN_SECRET` is unset — fail-fast rather than
+ * silently issuing tokens under a dev default.
+ */
 export function signToken(payload: Omit<TokenPayload, 'exp'> & { ttlSec: number }): string {
   const exp = Math.floor(Date.now() / 1000) + payload.ttlSec;
   const body: TokenPayload = { rid: payload.rid, eid: payload.eid, act: payload.act, exp };
@@ -55,10 +66,32 @@ export function signToken(payload: Omit<TokenPayload, 'exp'> & { ttlSec: number 
   return `${encoded}.${sign(encoded)}`;
 }
 
+/**
+ * Discriminated union returned by {@link verifyToken}.
+ *
+ * Failure reasons:
+ * - `malformed` — token is not `<body>.<sig>` (wrong number of dots).
+ * - `invalid_signature` — HMAC mismatch; compared via `timingSafeEqual` to
+ *   prevent timing-based forgery detection.
+ * - `expired` — signature is valid but `exp` is in the past.
+ * - `payload` — body decodes but fails Zod validation (unknown action, missing
+ *   field, etc.).
+ */
 export type VerifyResult =
   | { ok: true; payload: TokenPayload }
   | { ok: false; reason: 'malformed' | 'invalid_signature' | 'expired' | 'payload' };
 
+/**
+ * Verify a token produced by {@link signToken}.
+ *
+ * Signature comparison uses `timingSafeEqual` — constant-time regardless of
+ * where the strings diverge, so an attacker cannot learn the secret by
+ * measuring response latency.
+ *
+ * Returns `{ ok: true, payload }` only when the signature is valid AND the
+ * token has not expired. All other outcomes return `{ ok: false, reason }`;
+ * see {@link VerifyResult} for the full failure taxonomy.
+ */
 export function verifyToken(token: string): VerifyResult {
   const parts = token.split('.');
   if (parts.length !== 2) return { ok: false, reason: 'malformed' };

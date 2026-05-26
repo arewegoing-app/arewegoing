@@ -23,7 +23,7 @@ export function PublicInviteToggle({
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  const shareUrl = token ? `${appUrl}/gigs/e/${eventSlug}/join?t=${token}` : null;
+  const shareUrl = token ? `${appUrl}/e/${eventSlug}/join?t=${token}` : null;
 
   const toggle = () =>
     startTransition(async () => {

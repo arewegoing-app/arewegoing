@@ -294,3 +294,8 @@ create table if not exists group_members (
   added_at timestamp not null default now()
 );
 create unique index if not exists group_members_group_recipient on group_members(group_id, recipient_id);
+
+-- Race-condition guard on email_tokens: one consumed row per (recipient, event, action).
+-- The unique constraint lets applyTokenRsvp use INSERT … ON CONFLICT DO NOTHING as an
+-- atomic idempotency check instead of a read-then-write SELECT + INSERT pair.
+create unique index if not exists email_tokens_unique_consumption on email_tokens(recipient_id, event_id, action);

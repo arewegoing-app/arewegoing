@@ -2,15 +2,22 @@
   "name": "arewegoing",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "typecheck": "tsc --noEmit",
     "test:unit": "for f in __tests__/*.unit.ts; do echo \"=== $f ===\"; npx tsx \"$f\" || exit 1; done",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
-    "reset": "rm -rf .gigs-data .gigs-outbox"
+    "reset": "rm -rf .gigs-data .gigs-data-* .gigs-outbox",
+    "hooks:enable": "git config core.hooksPath .githooks",
+    "hooks:disable": "git config --unset core.hooksPath"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",

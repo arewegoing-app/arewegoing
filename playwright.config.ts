@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './src/app/gigs/__tests__',
+  testDir: './__tests__',
   fullyParallel: false,
   workers: 1,
   retries: 0,
@@ -15,12 +15,14 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm --ignore-workspace dev',
-    url: 'http://localhost:3000/gigs/signin',
+    url: 'http://localhost:3000/signin',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
       GIGS_TEST_AUTH: '1',
       NODE_ENV: 'development',
+      // NextAuth requires a secret even in dev; without it server actions return 400.
+      AUTH_SECRET: 'playwright-test-secret-do-not-use-in-production',
     },
   },
 });

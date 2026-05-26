@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { and, eq } from 'drizzle-orm';
 import { db, ensureMigrated } from '@/lib/db/client';
 import { events, owed, purchases, resaleListings } from '@/lib/db/schema';
+import { now } from '@/lib/time';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ClaimResaleForm } from './claim-form';
@@ -52,7 +53,7 @@ export default async function ResalePage({ params }: { params: Promise<{ slug: s
     .where(and(eq(owed.eventInviteId, listing.originalInviteId), eq(purchases.eventId, event.id))!)
     .limit(1);
   const amountCents = owedRow?.amountCents ?? 0;
-  const expired = listing.expiresAt.getTime() < Date.now();
+  const expired = listing.expiresAt.getTime() < now();
 
   return (
     <div className="mx-auto max-w-md space-y-4">

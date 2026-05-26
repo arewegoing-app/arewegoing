@@ -11,7 +11,6 @@ import {
   recipients,
   resaleListings,
   rsvps,
-  users,
 } from '../db/schema';
 import { signToken, verifyToken } from '../tokens/token-service';
 import { sendEmail } from '../notifications/email';
@@ -104,7 +103,7 @@ export async function requestBail(raw: z.input<typeof requestInput>): Promise<Ba
 
   let offered = 0;
   for (const c of offerees) {
-    const claimLink = `${APP_URL}/gigs/r?t=${signToken({
+    const claimLink = `${APP_URL}/r?t=${signToken({
       rid: c.recipient.id,
       eid: row.event.id,
       act: 'bail.claim',
@@ -329,5 +328,3 @@ export async function expireStaleListings(now: Date = new Date()): Promise<{ exp
   }
   return { expired: expired.length };
 }
-
-void users;

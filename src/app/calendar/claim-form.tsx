@@ -33,7 +33,7 @@ export function ClaimForm({ eventId, eventTitle }: { eventId: string; eventTitle
             setError(result.reason === 'already_claimed' ? 'Someone else already claimed this gig.' : 'Could not claim');
             return;
           }
-          router.push(`/gigs/e/${result.slug}`);
+          router.push(`/e/${result.slug}`);
         })
       }
       aria-label={`Claim ${eventTitle}`}
