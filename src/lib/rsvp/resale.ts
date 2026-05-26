@@ -11,7 +11,6 @@ import {
   recipients,
   resaleListings,
   rsvps,
-  users,
 } from '../db/schema';
 import { signToken, verifyToken } from '../tokens/token-service';
 import { sendEmail } from '../notifications/email';
@@ -329,5 +328,3 @@ export async function expireStaleListings(now: Date = new Date()): Promise<{ exp
   }
   return { expired: expired.length };
 }
-
-void users;

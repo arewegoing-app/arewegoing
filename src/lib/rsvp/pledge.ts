@@ -63,13 +63,12 @@ export async function startFinalCall(input: z.input<typeof startInput>) {
   );
 
   const [buyer] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-  for (const { recipient, invite } of goingInvites) {
+  for (const { recipient } of goingInvites) {
     const links = {
       confirm: `${APP_URL}/r?t=${signToken({ rid: recipient.id, eid: event.id, act: 'pledge.confirm', ttlSec: FINAL_CALL_TTL_SEC })}`,
       drop: `${APP_URL}/r?t=${signToken({ rid: recipient.id, eid: event.id, act: 'pledge.drop', ttlSec: FINAL_CALL_TTL_SEC })}`,
       view: `${APP_URL}/e/${event.slug}?t=${signToken({ rid: recipient.id, eid: event.id, act: 'view', ttlSec: FINAL_CALL_TTL_SEC })}`,
     };
-    void invite; // for typing
     const tmpl = finalCallEmail({
       buyer: { name: buyer?.name ?? '', email: buyer?.email ?? '' },
       recipient,

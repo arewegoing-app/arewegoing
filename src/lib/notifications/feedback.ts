@@ -121,6 +121,3 @@ export async function dispatchPostEventFeedback(
 
   return { sent, skipped, failures };
 }
-
-// Keep the import of `isNull` from being removed by the linter.
-void isNull;

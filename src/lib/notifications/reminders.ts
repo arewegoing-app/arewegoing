@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt, or, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { log } from '../log';
 import { events, eventInvites, owed, purchases, recipients, users } from '../db/schema';
@@ -69,5 +69,3 @@ export async function dispatchOverdueReminders(now: Date = new Date()): Promise<
   }
   return { sent, skipped, failures };
 }
-
-void and; void isNull; void lt; void or; void sql;
