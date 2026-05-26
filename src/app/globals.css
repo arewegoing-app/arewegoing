@@ -1,0 +1,306 @@
+@import "tailwindcss";
+
+:root {
+  --term-green: #33ff33;
+  --term-green-dim: #20cc20;
+  --term-green-bright: #66ff66;
+  --term-red: #ff4444;
+  --term-bg: #0a0f0a;
+  --term-glow: rgba(51, 255, 51, 0.15);
+  --term-font: 'Courier New', ui-monospace, monospace;
+}
+
+@theme inline {
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: #0a0a0a;
+  color: var(--foreground);
+  margin: 0;
+}
+
+/* Lock scroll only when the terminal homepage is rendered so its CRT frame
+   stays in-frame. Other routes (e.g. /gigs) need normal page scrolling. */
+body:has(.terminal-screen) {
+  overflow: hidden;
+}
+
+/* ── Terminal Screen ── */
+.terminal-screen {
+  width: 100%;
+  max-width: 56rem;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  animation: boot 0.6s ease-out;
+}
+
+@media (min-width: 640px) {
+  .terminal-screen {
+    height: min(85vh, 44rem);
+  }
+}
+
+@keyframes boot {
+  0% { opacity: 0; transform: scaleY(0.01); }
+  40% { opacity: 1; transform: scaleY(0.01); }
+  60% { transform: scaleY(1.02); }
+  100% { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-screen {
+    animation: none;
+  }
+
+  .terminal-scanlines {
+    animation: none !important;
+  }
+}
+
+/* ── Bezel ── */
+.terminal-bezel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #1a2a1a;
+  border-radius: 0;
+  overflow: hidden;
+  background: var(--term-bg);
+  box-shadow:
+    0 0 40px var(--term-glow),
+    inset 0 0 60px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .terminal-bezel {
+    border-radius: 8px;
+    border-width: 2px;
+  }
+}
+
+/* ── Title Bar ── */
+.terminal-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #111;
+  border-bottom: 1px solid #1a2a1a;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .terminal-titlebar {
+    padding: 8px 12px;
+  }
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.terminal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #333;
+}
+
+@media (min-width: 640px) {
+  .terminal-dot {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+.terminal-dot--red { background: #ff5f57; }
+.terminal-dot--yellow { background: #ffbd2e; }
+.terminal-dot--green { background: #28c840; }
+
+.terminal-title {
+  font-family: var(--term-font);
+  font-size: 12px;
+  color: #555;
+  letter-spacing: 0.5px;
+}
+
+/* ── Body ── */
+.terminal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  padding: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #1a3a1a transparent;
+}
+
+.terminal-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.terminal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.terminal-body::-webkit-scrollbar-thumb {
+  background: #1a3a1a;
+  border-radius: 2px;
+}
+
+/* ── Scanlines ── */
+.terminal-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.12) 2px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+  animation: scanline-shift 8s linear infinite;
+}
+
+@keyframes scanline-shift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(4px); }
+}
+
+/* ── Content ── */
+.terminal-content {
+  position: relative;
+  z-index: 1;
+  padding: 10px 12px;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
+  .terminal-content {
+    padding: 12px 16px;
+  }
+}
+
+/* ── Lines ── */
+.terminal-line {
+  font-family: var(--term-font);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-shadow: 0 0 6px var(--term-glow);
+  min-height: 1.5em;
+}
+
+@media (min-width: 640px) {
+  .terminal-line {
+    font-size: 16px;
+    white-space: pre;
+    word-break: normal;
+  }
+}
+
+.terminal-line--output {
+  color: var(--term-green-dim);
+}
+
+.terminal-line--command {
+  color: var(--term-green-bright);
+}
+
+.terminal-line--error {
+  color: var(--term-red);
+  text-shadow: 0 0 6px rgba(255, 68, 68, 0.3);
+}
+
+.terminal-line--accent {
+  color: var(--term-green);
+  text-shadow: 0 0 8px var(--term-glow);
+}
+
+/* ── Input Line ── */
+.terminal-input-line {
+  display: flex;
+  align-items: center;
+  font-family: var(--term-font);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (min-width: 640px) {
+  .terminal-input-line {
+    font-size: 16px;
+  }
+}
+
+.terminal-prompt {
+  color: var(--term-green);
+  text-shadow: 0 0 6px var(--term-glow);
+  white-space: pre;
+  flex-shrink: 0;
+}
+
+.terminal-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--term-green-bright);
+  font-family: var(--term-font);
+  font-size: 14px;
+  line-height: 1.5;
+  caret-color: var(--term-green);
+  text-shadow: 0 0 6px var(--term-glow);
+  padding: 0;
+  margin: 0;
+  /* prevent iOS zoom on focus */
+  font-size: 16px;
+  border-radius: 0;
+  -webkit-appearance: none;
+}
+
+@media (min-width: 640px) {
+  .terminal-input {
+    font-size: 16px;
+  }
+}
+
+.terminal-input::selection {
+  background: rgba(51, 255, 51, 0.25);
+  color: #fff;
+}
+
+/* ── CRT Vignette ── */
+.terminal-bezel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  border-radius: inherit;
+}
+
+/* ── Focus visible ── */
+.terminal-input:focus-visible {
+  outline: 2px solid var(--term-green);
+  outline-offset: 2px;
+}
