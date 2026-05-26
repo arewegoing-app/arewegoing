@@ -28,8 +28,6 @@ import { FinalCallForm } from './final-call-form';
 import { ShareButtons } from './share-buttons';
 import { PublicInviteToggle } from './public-invite-toggle';
 import { OwedDashboard } from './owed-dashboard';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar } from '@/components/avatar';
 
 export default async function EventDetailPage({
@@ -49,12 +47,17 @@ export default async function EventDetailPage({
   const ownerCheck = await checkEventOwner(event);
   if (!ownerCheck.isOwner) {
     return (
-      <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          This event is being organised by someone else. Ask them to share the calendar with you, or go to the{' '}
-          <Link href="/" className="text-foreground underline">calendar</Link> to see what&apos;s on.
-        </CardContent>
-      </Card>
+      <div className="ed-card mx-auto max-w-lg p-6 text-center">
+        <div className="u-mono opacity-50">[!] / Not your event</div>
+        <h1 className="u-display mt-2 text-2xl">Organised by someone else.</h1>
+        <p className="u-mono mt-3 opacity-70 leading-relaxed">
+          Ask them to share, or head back to the{' '}
+          <Link href="/" className="underline hover:text-[color:var(--ed-accent-2)]">
+            calendar
+          </Link>{' '}
+          to see what&apos;s on.
+        </p>
+      </div>
     );
   }
 
@@ -181,52 +184,122 @@ export default async function EventDetailPage({
   );
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <header className="space-y-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{event.title}</h1>
-          <p className="text-sm text-muted-foreground">
-            {event.venue ?? '—'} ·{' '}
-            {event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', dateStyle: 'full', timeStyle: 'short' }) : 'TBD'}
-            {event.priceLow ? ` · from $${event.priceLow}` : ''}
-          </p>
-          {event.seriesName && (
-            <Badge variant="secondary" className="mt-1">
-              {event.seriesName}
-            </Badge>
-          )}
+    <div className="space-y-8 sm:space-y-10">
+      {/* Hero header — back link, mono meta, big title, share row */}
+      <header>
+        <Link
+          href="/calendar"
+          className="u-mono inline-flex items-center hover:text-[color:var(--ed-accent-2)]"
+        >
+          <span aria-hidden>↳ </span>Back to calendar
+        </Link>
+
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:gap-6">
+          <div className="u-mono leading-relaxed" style={{ color: 'var(--ed-fg-soft)' }}>
+            <span className="block opacity-50">[01] / Venue</span>
+            <strong className="block font-medium">{event.venue ?? '—'}</strong>
+          </div>
+          <div className="u-mono leading-relaxed" style={{ color: 'var(--ed-fg-soft)' }}>
+            <span className="block opacity-50">[02] / When</span>
+            <strong className="block font-medium">
+              {event.startsAt
+                ? new Date(event.startsAt).toLocaleString('en-NZ', {
+                    timeZone: 'Pacific/Auckland',
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })
+                : 'TBD'}
+            </strong>
+            {event.priceLow && (
+              <span className="block opacity-70">from ${event.priceLow}</span>
+            )}
+          </div>
         </div>
-        <ShareButtons
-          eventTitle={event.title}
-          eventVenue={event.venue}
-          eventDate={event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : null}
-          eventId={event.id}
-          shareUrl={`${process.env.GIGS_APP_URL ?? ''}/e/${event.slug}`}
-          icsUrl={`/e/${event.slug}/ics`}
-          showRefresh={!!(event.sourceUrl || event.ticketUrl)}
-        />
+
+        <h1
+          className="u-display mt-6"
+          style={{ fontSize: 'clamp(2rem, 7vw, 5rem)' }}
+        >
+          {event.title}
+        </h1>
+
+        {event.seriesName && (
+          <span
+            className="u-mono mt-4 inline-block"
+            style={{
+              background: 'var(--ed-fg)',
+              color: 'var(--ed-bg)',
+              padding: '0.3rem 0.6rem',
+            }}
+          >
+            {event.seriesName}
+          </span>
+        )}
+
+        <div className="mt-6">
+          <ShareButtons
+            eventTitle={event.title}
+            eventVenue={event.venue}
+            eventDate={
+              event.startsAt
+                ? new Date(event.startsAt).toLocaleString('en-NZ', {
+                    timeZone: 'Pacific/Auckland',
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })
+                : null
+            }
+            eventId={event.id}
+            shareUrl={`${process.env.GIGS_APP_URL ?? ''}/e/${event.slug}`}
+            icsUrl={`/e/${event.slug}/ics`}
+            showRefresh={!!(event.sourceUrl || event.ticketUrl)}
+          />
+        </div>
       </header>
 
       {sp.status && (
         <div
           role="status"
-          className="rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200"
+          className="border px-4 py-2"
+          style={{
+            background: 'var(--ed-accent)',
+            color: 'var(--ed-fg)',
+            borderColor: 'var(--ed-line)',
+          }}
         >
-          RSVP recorded: <strong>{sp.status}</strong>
+          <span className="u-mono opacity-60">↳ RSVP recorded</span>{' '}
+          <strong>{sp.status}</strong>
           {sp.replay && ' (already counted)'}
         </div>
       )}
       {sp.pledge && (
         <div
           role="status"
-          className="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
+          className="border px-4 py-2"
+          style={{
+            background: 'var(--ed-accent)',
+            color: 'var(--ed-fg)',
+            borderColor: 'var(--ed-line)',
+          }}
         >
-          Pledge {sp.pledge}{sp.replay && ' (already counted)'}
+          <span className="u-mono opacity-60">↳ Pledge</span> <strong>{sp.pledge}</strong>
+          {sp.replay && ' (already counted)'}
         </div>
       )}
 
-      <section className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-        <Stat label="Going" value={goingCount} />
+      {/* Stats — hairline grid */}
+      <section
+        aria-label="RSVP totals"
+        className="ed-card grid grid-cols-3 gap-px sm:grid-cols-5"
+        style={{ background: 'var(--ed-line)' }}
+      >
+        <Stat label="Going" value={goingCount} accent />
         <Stat label="Pledged" value={pledgedCount} />
         <Stat label="Maybe" value={maybeCount} />
         <Stat label="Out" value={outCount} />
@@ -238,22 +311,23 @@ export default async function EventDetailPage({
       )}
 
       {activeCall && (
-        <Card className="border-amber-300 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/40">
-          <CardHeader>
-            <CardTitle className="text-sm text-amber-900 dark:text-amber-200">Final call active</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1 text-sm text-amber-900 dark:text-amber-200">
-            <p>
-              ${activeCall.pledgeAmount} per ticket · deadline{' '}
-              {new Date(activeCall.deadlineAt).toLocaleString('en-NZ')}
-            </p>
-            <p className="text-muted-foreground">
-              {commitments.filter((c) => c.state === 'confirmed').length} confirmed,{' '}
-              {commitments.filter((c) => c.state === 'asked').length} pending,{' '}
-              {commitments.filter((c) => c.state === 'dropped').length} dropped
-            </p>
-          </CardContent>
-        </Card>
+        <section
+          className="ed-card p-4 sm:p-5"
+          style={{ background: 'var(--ed-accent)' }}
+        >
+          <div className="u-mono opacity-70">[!] / Final call active</div>
+          <p className="u-display mt-1 text-2xl">
+            ${activeCall.pledgeAmount} per ticket
+          </p>
+          <p className="u-mono mt-1 opacity-80">
+            ↳ Deadline {new Date(activeCall.deadlineAt).toLocaleString('en-NZ')}
+          </p>
+          <p className="u-mono mt-2">
+            {commitments.filter((c) => c.state === 'confirmed').length} confirmed ·{' '}
+            {commitments.filter((c) => c.state === 'asked').length} pending ·{' '}
+            {commitments.filter((c) => c.state === 'dropped').length} dropped
+          </p>
+        </section>
       )}
 
       <PromoPanel
@@ -272,67 +346,94 @@ export default async function EventDetailPage({
       {dashboardRows.length > 0 && <OwedDashboard rows={dashboardRows} totals={totals} />}
 
       {openListings.length > 0 && (
-        <Card className="border-amber-300 dark:border-amber-900/50">
-          <CardHeader>
-            <CardTitle className="text-sm">{openListings.length} ticket{openListings.length === 1 ? '' : 's'} up for resale</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            The resale offer has gone out. If nobody claims by{' '}
-            {new Date(openListings[0].expiresAt).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', dateStyle: 'medium', timeStyle: 'short' })}
+        <section className="ed-card p-4 sm:p-5">
+          <div className="u-mono opacity-50">[!] / Resale open</div>
+          <h2 className="u-display mt-1 text-2xl">
+            {openListings.length} ticket{openListings.length === 1 ? '' : 's'} up for grabs
+          </h2>
+          <p className="u-mono mt-2 opacity-70 leading-relaxed">
+            ↳ If nobody claims by{' '}
+            {new Date(openListings[0].expiresAt).toLocaleString('en-NZ', {
+              timeZone: 'Pacific/Auckland',
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}
             , the original pledger remains on the hook.
-          </CardContent>
-        </Card>
+          </p>
+        </section>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Invited</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {invitesRows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nobody invited yet.</p>
-          ) : (
-            <ul className="divide-y divide-border rounded-md border">
-              {invitesRows.map(({ invite, recipient, rsvp }) => {
-                const c = commitmentByInvite.get(invite.id);
-                const hasOwn = invite.hasOwnTicket === 1;
-                const pledgeBadge = hasOwn
-                  ? '🎟️ has own ticket'
-                  : rsvp?.pledgeState === 'locked'
-                    ? '🔒 locked'
-                    : rsvp?.pledgeState === 'pledged'
-                      ? '💵 pledged'
-                      : c?.state === 'asked'
-                        ? '⏳ awaiting pledge'
-                        : c?.state === 'dropped'
-                          ? '🚪 dropped'
-                          : null;
-                return (
-                  <li key={invite.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Avatar name={recipient?.displayName ?? '?'} size="sm" />
-                      <span className="truncate">
-                        {recipient?.displayName}{' '}
-                        <span className="text-muted-foreground">({recipient?.email})</span>
+      {/* Invited section */}
+      <section aria-label="Invited people">
+        <div className="ed-section-head">
+          <div className="u-mono opacity-50">[03] / Invited</div>
+          <h2 className="u-display" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', margin: 0 }}>
+            Who&apos;s in
+          </h2>
+          <div className="u-mono opacity-50">
+            {String(invitesRows.length).padStart(2, '0')} people
+          </div>
+        </div>
+        {invitesRows.length === 0 ? (
+          <div className="ed-card mt-4 p-6 text-center">
+            <p className="u-mono opacity-60">↳ Nobody invited yet.</p>
+          </div>
+        ) : (
+          <ul className="ed-card mt-4 divide-y divide-[color:var(--ed-line)]">
+            {invitesRows.map(({ invite, recipient, rsvp }) => {
+              const c = commitmentByInvite.get(invite.id);
+              const hasOwn = invite.hasOwnTicket === 1;
+              const pledgeBadge = hasOwn
+                ? 'has own ticket'
+                : rsvp?.pledgeState === 'locked'
+                  ? 'locked'
+                  : rsvp?.pledgeState === 'pledged'
+                    ? 'pledged'
+                    : c?.state === 'asked'
+                      ? 'awaiting pledge'
+                      : c?.state === 'dropped'
+                        ? 'dropped'
+                        : null;
+              return (
+                <li
+                  key={invite.id}
+                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Avatar name={recipient?.displayName ?? '?'} size="sm" />
+                    <span className="truncate">
+                      <strong>{recipient?.displayName}</strong>{' '}
+                      <span className="u-mono" style={{ color: 'var(--ed-fg-soft)' }}>
+                        ({recipient?.email})
                       </span>
                     </span>
-                    <span className="text-muted-foreground">
-                      {rsvp?.status ?? 'pending'}
-                      {pledgeBadge && <span className="ml-2">{pledgeBadge}</span>}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+                  </span>
+                  <span
+                    className="u-mono"
+                    style={{ color: 'var(--ed-fg-soft)' }}
+                  >
+                    ↳ {rsvp?.status ?? 'pending'}
+                    {pledgeBadge && <span> · {pledgeBadge}</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Invite people</CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* Invite form */}
+      <section aria-label="Invite people">
+        <div className="ed-section-head">
+          <div className="u-mono opacity-50">[04] / Invite</div>
+          <h2 className="u-display" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', margin: 0 }}>
+            Pull friends in
+          </h2>
+          <div className="u-mono opacity-50">
+            {String(uninvited.length).padStart(2, '0')} not yet asked
+          </div>
+        </div>
+        <div className="ed-card mt-4 p-4 sm:p-5">
           <InviteForm
             eventId={event.id}
             recipients={uninvited}
@@ -340,17 +441,24 @@ export default async function EventDetailPage({
             groups={myGroups}
             groupMembers={groupMembersMap}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
-    <div className="rounded-md border bg-card p-3 text-center">
-      <div className="font-mono text-xl">{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
+    <div
+      className="p-3 text-center"
+      style={{
+        background: accent && value > 0 ? 'var(--ed-accent)' : 'var(--ed-bg)',
+      }}
+    >
+      <div className="u-display tabular-nums" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
+        {String(value).padStart(2, '0')}
+      </div>
+      <div className="u-mono opacity-60">{label}</div>
     </div>
   );
 }
