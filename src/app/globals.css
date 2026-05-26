@@ -48,6 +48,45 @@ body:not(:has(.terminal-screen)) ::selection {
   color: var(--ed-fg);
 }
 
+/* Dark mode — editorial surface only. Two activation paths:
+   1. OS preference via @media (prefers-color-scheme: dark)
+   2. Manual toggle via html.dark class (set by ThemeToggle component) */
+@media (prefers-color-scheme: dark) {
+  body:not(:has(.terminal-screen)) {
+    --ed-bg: oklch(15% 0.005 90);
+    --ed-fg: oklch(94% 0.005 90);
+    --ed-fg-soft: oklch(94% 0.005 90 / 0.6);
+    --ed-line: oklch(94% 0.005 90);
+  }
+}
+
+html.dark body:not(:has(.terminal-screen)) {
+  --ed-bg: oklch(15% 0.005 90);
+  --ed-fg: oklch(94% 0.005 90);
+  --ed-fg-soft: oklch(94% 0.005 90 / 0.6);
+  --ed-line: oklch(94% 0.005 90);
+}
+
+/* When dark, the @media block would also fire if OS is dark — override it back
+   to light when html.light is explicitly set by the toggle. */
+html.light body:not(:has(.terminal-screen)) {
+  --ed-bg: oklch(96% 0.005 90);
+  --ed-fg: oklch(15% 0 0);
+  --ed-fg-soft: oklch(15% 0 0 / 0.6);
+  --ed-line: oklch(15% 0 0);
+}
+
+/* .u-accent-bg: lime background is a light colour so always keep text dark
+   regardless of dark-mode theme. Override the var(--ed-fg) default here. */
+@media (prefers-color-scheme: dark) {
+  body:not(:has(.terminal-screen)) .u-accent-bg {
+    color: oklch(15% 0 0);
+  }
+}
+html.dark body:not(:has(.terminal-screen)) .u-accent-bg {
+  color: oklch(15% 0 0);
+}
+
 .u-mono {
   font-family: var(--font-jbmono, ui-monospace, monospace);
   font-size: 0.6875rem;

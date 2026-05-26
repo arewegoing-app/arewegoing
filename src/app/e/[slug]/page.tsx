@@ -29,6 +29,9 @@ import { ShareButtons } from './share-buttons';
 import { PublicInviteToggle } from './public-invite-toggle';
 import { OwedDashboard } from './owed-dashboard';
 import { Avatar } from '@/components/avatar';
+import { HostVoteCard } from '@/components/host-vote-card';
+import { getHostVoteTally } from '@/lib/host_votes/store';
+import { readAnonId } from '@/lib/anon/identity';
 
 export default async function EventDetailPage({
   params,
@@ -44,19 +47,40 @@ export default async function EventDetailPage({
   const [event] = await db.select().from(events).where(eq(events.slug, slug)).limit(1);
   if (!event) notFound();
 
+  // Compute host-vote tally up front — visible to owner AND non-owner viewers
+  // because pre-drinks / afters voting only makes sense if friends can vote too.
+  const preCheckSession = await auth();
+  const preCheckAnonId = await readAnonId();
+  const voteActor = preCheckSession?.user?.id
+    ? ({ userId: preCheckSession.user.id } as const)
+    : preCheckAnonId
+      ? ({ anonId: preCheckAnonId } as const)
+      : null;
+  const hostTally = await getHostVoteTally(event.id, voteActor);
+
   const ownerCheck = await checkEventOwner(event);
   if (!ownerCheck.isOwner) {
     return (
-      <div className="ed-card mx-auto max-w-lg p-6 text-center">
-        <div className="u-mono opacity-50">[!] / Not your event</div>
-        <h1 className="u-display mt-2 text-2xl">Organised by someone else.</h1>
-        <p className="u-mono mt-3 opacity-70 leading-relaxed">
-          Ask them to share, or head back to the{' '}
-          <Link href="/" className="underline hover:text-[color:var(--ed-accent-2)]">
-            calendar
-          </Link>{' '}
-          to see what&apos;s on.
-        </p>
+      <div className="mx-auto w-full max-w-2xl space-y-8">
+        <div className="ed-card p-6">
+          <div className="u-mono opacity-50">[!] / Public view</div>
+          <h1 className="u-display mt-2" style={{ fontSize: 'clamp(1.75rem, 5vw, 3rem)' }}>
+            {event.title}
+          </h1>
+          <p className="u-mono mt-2 opacity-70">
+            ↳ Organised by someone else. You can still vote on where to pre-drink and end up.
+          </p>
+          <p className="u-mono mt-3 opacity-50">
+            Back to the{' '}
+            <Link href="/" className="underline hover:text-[color:var(--ed-accent-2)]">
+              calendar
+            </Link>
+            .
+          </p>
+        </div>
+
+        <HostVoteCard eventId={event.id} kind="predrinks" initialRows={hostTally.predrinks} />
+        <HostVoteCard eventId={event.id} kind="afters" initialRows={hostTally.afters} />
       </div>
     );
   }
@@ -443,6 +467,9 @@ export default async function EventDetailPage({
           />
         </div>
       </section>
+
+      <HostVoteCard eventId={event.id} kind="predrinks" initialRows={hostTally.predrinks} />
+      <HostVoteCard eventId={event.id} kind="afters" initialRows={hostTally.afters} />
     </div>
   );
 }
