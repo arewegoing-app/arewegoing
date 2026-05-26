@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+# Least-privilege default; jobs that need more should opt in locally.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -17,6 +21,7 @@ jobs:
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -32,8 +37,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    # Allow failure until the pre-existing lint errors are cleaned up.
-    continue-on-error: true
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -49,8 +53,7 @@ jobs:
   test:
     name: Unit tests
     runs-on: ubuntu-latest
-    # Allow failure until the suite is fully green post-rebrand.
-    continue-on-error: true
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -66,7 +69,8 @@ jobs:
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
-    # Allow failure until the suite is fully green post-rebrand.
+    timeout-minutes: 20
+    # Allow failure until the suite is fully verified post-rebrand.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
@@ -78,7 +82,20 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      # Cache the Playwright browser binary between runs; rekey when the
+      # pinned @playwright/test version moves.
+      - name: Get Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
       - run: pnpm test:e2e
         env:
           NEXT_TELEMETRY_DISABLED: '1'
@@ -92,6 +109,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
