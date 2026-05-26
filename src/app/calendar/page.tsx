@@ -12,6 +12,7 @@ import { ClaimForm } from './claim-form';
 import { WelcomeCard } from './welcome-card';
 import { SeriesFollowButton } from './series-follow';
 import { NotifyMeButton } from '@/components/notify-me-button';
+import { ConnectRow } from './connect-row';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
@@ -275,6 +276,23 @@ export default async function CalendarPage({
             )}
           </div>
         )}
+      </section>
+
+      {/* Connect section — slice 7 mock shells. */}
+      <section aria-label="Connect your accounts">
+        <div className="ed-section-head">
+          <div className="u-mono opacity-50">[04] / Connect</div>
+          <h2
+            className="u-display"
+            style={{ fontSize: 'clamp(1.5rem, 5vw, 3rem)', margin: 0 }}
+          >
+            Plug it in.
+          </h2>
+          <div className="u-mono opacity-50">04 ready</div>
+        </div>
+        <div className="mt-4">
+          <ConnectRow />
+        </div>
       </section>
 
       {/* Notify-me strip — slice 3 wiring demo. */}
