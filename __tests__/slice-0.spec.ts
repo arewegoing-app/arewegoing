@@ -25,7 +25,7 @@ function extractActionLink(text: string, action: 'in' | 'maybe' | 'out'): string
 async function signInAs(page: Page, email: string) {
   await page.goto('/signin');
   await page.locator('input[name="email"]').fill(email);
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: /Continue/ }).click();
   await page.waitForURL('/');
 }
 

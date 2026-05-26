@@ -21,6 +21,8 @@ export default defineConfig({
     env: {
       GIGS_TEST_AUTH: '1',
       NODE_ENV: 'development',
+      // NextAuth requires a secret even in dev; without it server actions return 400.
+      AUTH_SECRET: 'playwright-test-secret-do-not-use-in-production',
     },
   },
 });

@@ -51,8 +51,9 @@ function extractLink(text: string, label: RegExp): string {
 async function signInBuyer(page: Page) {
   await page.goto('/signin');
   await page.locator('input[name="email"]').fill(BUYER);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.waitForURL((url) => !url.pathname.includes('/signin'), { timeout: 15_000 });
+  await page.getByRole('button', { name: /Continue/ }).click();
+  // Wait for the full NextAuth redirect to complete, landing at /.
+  await page.waitForURL('/', { timeout: 15_000 });
 }
 
 test.describe('Group scenario — full friend-group rally end-to-end', () => {

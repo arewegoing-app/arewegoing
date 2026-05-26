@@ -51,9 +51,9 @@ function assertClean(captured: Captured, label: string) {
 async function signIn(page: Page) {
   await page.goto('/signin');
   await page.locator('input[name="email"]').fill(BUYER);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  // Wait for redirect AWAY from /signin — not just any /gigs page.
-  await page.waitForURL((url) => !url.pathname.includes('/signin'), { timeout: 15_000 });
+  await page.getByRole('button', { name: /Continue/ }).click();
+  // Wait for full redirect to / after NextAuth callback completes.
+  await page.waitForURL('/', { timeout: 15_000 });
 }
 
 test.describe('Buttons smoke — every page, every button', () => {
@@ -138,7 +138,7 @@ test.describe('Buttons smoke — every page, every button', () => {
     // Create event with minimum fields.
     await page.locator('input[name="title"]').fill(`Smoke ${TS}`);
     await page.getByRole('button', { name: 'Create event' }).click();
-    await page.waitForURL(/\/gigs\/e\//, { timeout: 10_000 });
+    await page.waitForURL(/\/e\//, { timeout: 10_000 });
 
     assertClean(cap, 'new event');
     await ctx.close();
