@@ -58,4 +58,6 @@ exception when others then null; end $$;`;
   console.log('All split-sql unit tests passed.');
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main()
+  .then(() => process.exit(0))
+  .catch((e) => { console.error(e); process.exit(1); });
