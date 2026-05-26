@@ -42,7 +42,7 @@ export async function dispatchOverdueReminders(now: Date = new Date()): Promise<
     }
     const daysOutstanding = Math.floor(elapsedMs / DAYS(1));
     const lastRemind = row.owed.lastRemindedAt ? new Date(row.owed.lastRemindedAt).getTime() : 0;
-    const minGapMs = daysOutstanding >= 7 ? DAYS(2) : daysOutstanding >= 3 ? DAYS(2) : DAYS(1);
+    const minGapMs = daysOutstanding >= 3 ? DAYS(2) : DAYS(1);
     if (lastRemind && now.getTime() - lastRemind < minGapMs) {
       skipped++;
       continue;

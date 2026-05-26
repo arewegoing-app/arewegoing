@@ -37,15 +37,24 @@ export function WelcomeCard({ dismissed }: { dismissed: boolean }) {
         <p className="text-sm text-emerald-900/90 dark:text-emerald-100/80">
           A shared calendar for Wellington gigs. No signin. Tap a reaction on any event:
         </p>
-        <ul className="space-y-1.5 text-sm text-emerald-900/90 dark:text-emerald-100/80">
-          <li className="flex items-center gap-2">
-            <CheckCircle2Icon className="size-4 shrink-0" aria-hidden="true" /> <strong>I&apos;m down</strong> signals you&apos;re keen
+        <ul className="space-y-2 text-sm leading-snug text-emerald-900/90 dark:text-emerald-100/80">
+          <li className="flex items-start gap-2">
+            <CheckCircle2Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+              <strong>I&apos;m down</strong> signals you&apos;re keen
+            </span>
           </li>
-          <li className="flex items-center gap-2">
-            <TicketIcon className="size-4 shrink-0" aria-hidden="true" /> <strong>Pledge 1 or 2 tickets</strong> if you&apos;d commit to buying
+          <li className="flex items-start gap-2">
+            <TicketIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+              <strong>Pledge 1 or 2 tickets</strong> if you&apos;d commit to buying
+            </span>
           </li>
-          <li className="flex items-center gap-2">
-            <MegaphoneIcon className="size-4 shrink-0" aria-hidden="true" /> Once 3+ are down, anyone can <strong>Rally this</strong> — claim the gig, invite friends by email, run the buy.
+          <li className="flex items-start gap-2">
+            <MegaphoneIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+              Once 3+ are down, anyone can <strong>Rally this</strong>, claim the gig, invite friends by email, run the buy.
+            </span>
           </li>
         </ul>
       </CardContent>

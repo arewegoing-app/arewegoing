@@ -23,7 +23,7 @@ export async function dispatchSeriesNotifications(): Promise<{ sent: number; fai
       .select()
       .from(events)
       .where(
-        and(eq(events.seriesName, sub.seriesName), gt(events.createdAt, watermark))!,
+        and(eq(events.seriesName, sub.seriesName), gt(events.createdAt, watermark)),
       )
       .orderBy(events.createdAt);
 
