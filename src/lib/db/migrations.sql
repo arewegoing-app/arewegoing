@@ -78,7 +78,7 @@ create table if not exists event_reactions (
   set_at timestamp not null default now()
 );
 
--- features-v2 slice 2: extras_count column (nullable; only set when kind='extras').
+-- features-v2 slice 2: extras_count column. Nullable -- only set when kind is 'extras'.
 do $$ begin
   alter table event_reactions add column if not exists extras_count integer;
 exception when others then null; end $$;

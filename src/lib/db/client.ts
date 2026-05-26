@@ -114,7 +114,7 @@ export { schema };
 /** Split a Postgres SQL script on top-level semicolons, respecting `do $$ ... $$`
  *  dollar-quoted blocks and single-quoted strings. Neon HTTP driver wants one
  *  statement per call. */
-function splitSql(script: string): string[] {
+export function splitSql(script: string): string[] {
   const out: string[] = [];
   let buf = '';
   let i = 0;
@@ -138,6 +138,23 @@ function splitSql(script: string): string[] {
       } else {
         i++;
       }
+      continue;
+    }
+    // Line comment (-- ...): preserve as whitespace but skip semicolons inside.
+    // Without this, `-- foo; bar` would split the statement at the embedded ';'.
+    if (ch === '-' && script[i + 1] === '-') {
+      const eol = script.indexOf('\n', i);
+      const end = eol === -1 ? script.length : eol + 1;
+      buf += script.slice(i, end);
+      i = end;
+      continue;
+    }
+    // Block comment /* ... */: same treatment.
+    if (ch === '/' && script[i + 1] === '*') {
+      const close = script.indexOf('*/', i + 2);
+      const end = close === -1 ? script.length : close + 2;
+      buf += script.slice(i, end);
+      i = end;
       continue;
     }
     if (ch === "'") {
