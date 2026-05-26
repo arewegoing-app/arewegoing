@@ -59,6 +59,15 @@ const SUCCESS_URLS = Object.entries(FIXTURES)
   .map(([k]) => k);
 
 async function main() {
+  // Regression guard for the bug fixed in PR #3: ensure none of the fictional
+  // test URLs has accidentally been added to the real seed list, which would
+  // pre-populate them via ensureMigrated() and shadow the discover insert path.
+  const { knownEvents } = await import('@/lib/discovery/known-events');
+  const seedUrls = new Set(knownEvents.map((e) => e.sourceUrl));
+  for (const u of SUCCESS_URLS) {
+    assert.ok(!seedUrls.has(u), `fixture URL collides with knownEvents seed: ${u}`);
+  }
+
   const { db, ensureMigrated } = await import('@/lib/db/client');
   await ensureMigrated();
   const { eq, inArray } = await import('drizzle-orm');
