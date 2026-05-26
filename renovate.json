@@ -3,7 +3,7 @@
   "extends": [
     "config:recommended",
     "schedule:nonBusinessHours",
-    ":timezone(America/Los_Angeles)"
+    ":timezone(Pacific/Auckland)"
   ],
   "labels": ["dependencies"],
   "prHourlyLimit": 2,
