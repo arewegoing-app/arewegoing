@@ -1,14 +1,29 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Archivo, Archivo_Black, JetBrains_Mono } from 'next/font/google';
 import Link from 'next/link';
 import { auth, signOut } from '@/lib/auth/auth';
 import { ensureMigrated } from '@/lib/db/client';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
+// Editorial type system — applied via CSS to every non-homepage route.
+const archivo = Archivo({
+  variable: '--font-archivo',
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+});
+const archivoBlack = Archivo_Black({
+  variable: '--font-archivo-black',
+  subsets: ['latin'],
+  weight: '400',
+});
+const jbMono = JetBrains_Mono({
+  variable: '--font-jbmono',
+  subsets: ['latin'],
+  weight: ['400', '500'],
+});
 
 export const metadata: Metadata = {
   title: 'are we going?',
@@ -32,31 +47,50 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={[
+        geistSans.variable,
+        geistMono.variable,
+        archivo.variable,
+        archivoBlack.variable,
+        jbMono.variable,
+        'h-full antialiased',
+      ].join(' ')}
+      style={{ fontFamily: 'var(--font-archivo), ui-sans-serif, system-ui, sans-serif' }}
     >
       <body className="min-h-full">
-        <div className="flex min-h-screen flex-col bg-background text-foreground">
-          <header className="border-b">
+        <div className="flex min-h-screen flex-col">
+          <header
+            className="ed-topbar border-b border-[color:var(--ed-line)]"
+            style={{ background: 'var(--ed-bg)' }}
+          >
             <nav
               aria-label="Primary"
-              className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3 sm:px-6"
+              className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6"
             >
-              <Link href="/" className="font-mono text-base font-semibold sm:text-lg">
-                are we going?
+              <Link
+                href="/"
+                className="u-display text-base"
+                aria-label="are we going? — home"
+              >
+                ARE&nbsp;WE&nbsp;GOING<span style={{ color: 'var(--ed-accent)' }}>?</span>
               </Link>
               <div className="flex items-center gap-3 text-sm">
-                <Link href="/mine" className="text-muted-foreground hover:text-foreground">
-                  Your gigs
+                <Link href="/calendar" className="u-mono hover:text-[color:var(--ed-accent-2)]">
+                  <span aria-hidden>↳ </span>Calendar
+                </Link>
+                <Link href="/mine" className="u-mono hover:text-[color:var(--ed-accent-2)]">
+                  <span aria-hidden>↳ </span>Your gigs
                 </Link>
                 {session?.user && (
-                  <Link href="/owed" className="text-muted-foreground hover:text-foreground">
-                    Owed
+                  <Link href="/owed" className="u-mono hover:text-[color:var(--ed-accent-2)]">
+                    <span aria-hidden>↳ </span>Owed
                   </Link>
                 )}
                 {session?.user ? (
                   <>
                     <span
-                      className="hidden text-muted-foreground sm:inline"
+                      className="u-mono hidden sm:inline"
+                      style={{ color: 'var(--ed-fg-soft)' }}
                       aria-label="Signed in as"
                     >
                       {session.user.email}
@@ -67,20 +101,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                         await signOut({ redirectTo: '/' });
                       }}
                     >
-                      <Button type="submit" variant="ghost" size="sm">
+                      <Button type="submit" variant="ghost" size="sm" className="u-mono">
                         Sign out
                       </Button>
                     </form>
                   </>
                 ) : (
-                  <Link href="/signin" className={cn(buttonVariants({ size: 'sm' }))}>
-                    Sign in
+                  <Link href="/signin" className="ed-chip">
+                    Sign in <span aria-hidden>↗</span>
                   </Link>
                 )}
               </div>
             </nav>
           </header>
-          <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
             {children}
           </main>
         </div>

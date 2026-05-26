@@ -8,6 +8,14 @@
   --term-bg: #0a0f0a;
   --term-glow: rgba(51, 255, 51, 0.15);
   --term-font: 'Courier New', ui-monospace, monospace;
+
+  /* Editorial palette — OKLCH. Used on every route except the terminal homepage. */
+  --ed-bg: oklch(96% 0.005 90);
+  --ed-fg: oklch(15% 0 0);
+  --ed-fg-soft: oklch(15% 0 0 / 0.6);
+  --ed-line: oklch(15% 0 0);
+  --ed-accent: oklch(88% 0.22 125);
+  --ed-accent-2: oklch(70% 0.22 35);
 }
 
 @theme inline {
@@ -28,6 +36,136 @@ body {
 body:has(.terminal-screen) {
   overflow: hidden;
 }
+
+/* Editorial surface: every non-homepage route renders inside this scope.
+   Activated by the `.editorial` class on the route wrapper in app/layout.tsx. */
+body:not(:has(.terminal-screen)) {
+  background: var(--ed-bg);
+  color: var(--ed-fg);
+}
+body:not(:has(.terminal-screen)) ::selection {
+  background: var(--ed-accent);
+  color: var(--ed-fg);
+}
+
+.u-mono {
+  font-family: var(--font-jbmono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+@media (min-width: 30rem) {
+  .u-mono { font-size: 0.75rem; }
+}
+
+.u-display {
+  font-family: var(--font-archivo-black, var(--font-archivo, ui-sans-serif));
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+
+.u-accent-bg { background: var(--ed-accent); color: var(--ed-fg); padding: 0 0.12em; }
+
+/* Section head — `[01] / Calendar  TITLE  12 EVENTS` */
+.ed-section-head {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  padding: 1.5rem 0 1rem;
+  border-bottom: 1px solid var(--ed-line);
+}
+@media (min-width: 48rem) {
+  .ed-section-head {
+    grid-template-columns: auto 1fr auto;
+    align-items: end;
+    gap: 1.25rem;
+  }
+}
+
+/* Marquee — looped scrolling text used as a section break. */
+.ed-marquee {
+  border-block: 1px solid var(--ed-line);
+  background: var(--ed-fg);
+  color: var(--ed-bg);
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--font-archivo-black, var(--font-archivo));
+  font-weight: 900;
+  font-size: clamp(1.25rem, 4vw, 2.25rem);
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  padding: 0.5rem 0;
+}
+.ed-marquee__track {
+  display: inline-block;
+  animation: ed-marquee 40s linear infinite;
+  padding-left: 100%;
+}
+.ed-marquee__track > span { padding-inline: 0.5em; }
+.ed-marquee__track > span.dot { color: var(--ed-accent); }
+@keyframes ed-marquee { to { transform: translateX(-100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .ed-marquee__track { animation: none; }
+}
+
+/* Editorial card — hairline border, no rounded corners, hover-invert. */
+.ed-card {
+  background: var(--ed-bg);
+  color: var(--ed-fg);
+  border: 1px solid var(--ed-line);
+  border-radius: 0;
+  transition: background 160ms, color 160ms;
+}
+.ed-card--hoverable:hover {
+  background: var(--ed-fg);
+  color: var(--ed-bg);
+}
+.ed-card--hoverable:hover .u-mono,
+.ed-card--hoverable:hover .ed-card__meta { color: var(--ed-bg); opacity: 0.85; }
+.ed-card--hoverable:hover .ed-card__num { color: var(--ed-accent); }
+
+.ed-card__num {
+  font-family: var(--font-jbmono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--ed-fg-soft);
+  text-transform: uppercase;
+  transition: color 160ms;
+}
+
+/* Editorial chip — used for reaction buttons, filter pills. */
+.ed-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--ed-line);
+  background: var(--ed-bg);
+  color: var(--ed-fg);
+  font-family: var(--font-jbmono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 0;
+  transition: background 120ms, color 120ms;
+  cursor: pointer;
+}
+.ed-chip:hover:not(:disabled),
+.ed-chip:focus-visible {
+  background: var(--ed-fg);
+  color: var(--ed-bg);
+  outline: none;
+}
+.ed-chip[aria-pressed="true"],
+.ed-chip[data-active="true"] {
+  background: var(--ed-accent);
+  color: var(--ed-fg);
+  border-color: var(--ed-fg);
+}
+.ed-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Terminal Screen ── */
 .terminal-screen {
