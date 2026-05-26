@@ -44,6 +44,7 @@ next-env.d.ts
 
 # gigs app local data
 /.gigs-data
+/.gigs-data-*
 /.gigs-outbox
 /playwright-report
 /test-results

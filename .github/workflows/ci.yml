@@ -38,10 +38,6 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # 3 pre-existing 'Cannot call impure function during render' errors in
-    # src/app/{e/[slug],owed,e/[slug]/resale}/page.tsx. Real React Compiler
-    # bugs but the fix needs code restructuring. Drop this when they're gone.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

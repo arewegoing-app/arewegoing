@@ -18,6 +18,7 @@ import {
   rsvps,
 } from '@/lib/db/schema';
 import { getReliabilityStats } from '@/lib/memory/stats';
+import { now } from '@/lib/time';
 import { listMyGroups } from '@/lib/groups/actions';
 import type { GroupWithCount } from '@/lib/groups/actions';
 import { PromoPanel } from './promo-panel';
@@ -146,7 +147,7 @@ export default async function EventDetailPage({
         .where(eq(purchases.eventId, event.id))
     : [];
 
-  const now = Date.now();
+  const nowMs = now();
   const openListings = await db
     .select()
     .from(resaleListings)
@@ -166,7 +167,7 @@ export default async function EventDetailPage({
     recipientEmail: r.recipient.email,
     amountCents: r.owed.amountCents,
     paid: r.owed.paid === 1,
-    daysOutstanding: Math.max(0, Math.floor((now - new Date(r.purchase.createdAt).getTime()) / 86_400_000)),
+    daysOutstanding: Math.max(0, Math.floor((nowMs - new Date(r.purchase.createdAt).getTime()) / 86_400_000)),
     lastRemindedAt: r.owed.lastRemindedAt,
     bailed: rsvpByInvite.get(r.owed.eventInviteId)?.pledgeState === 'bailed',
   }));
