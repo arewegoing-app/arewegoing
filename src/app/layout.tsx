@@ -76,14 +76,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </Link>
               <div className="flex items-center gap-3 text-sm">
                 <Link href="/calendar" className="u-mono hover:text-[color:var(--ed-accent-2)]">
-                  ↳ Calendar
+                  <span aria-hidden>↳ </span>Calendar
                 </Link>
                 <Link href="/mine" className="u-mono hover:text-[color:var(--ed-accent-2)]">
-                  ↳ Your gigs
+                  <span aria-hidden>↳ </span>Your gigs
                 </Link>
                 {session?.user && (
                   <Link href="/owed" className="u-mono hover:text-[color:var(--ed-accent-2)]">
-                    ↳ Owed
+                    <span aria-hidden>↳ </span>Owed
                   </Link>
                 )}
                 {session?.user ? (
