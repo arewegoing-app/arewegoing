@@ -188,14 +188,14 @@ export default async function CalendarPage({
       )}
 
       {/* Section head — `[03] / Index · TITLE · NN ITEMS` */}
-      <section aria-label="Index">
+      <section aria-label="Next 90 days">
         <div className="ed-section-head">
           <div className="u-mono opacity-50">[03] / Index</div>
           <h2
             className="u-display"
             style={{ fontSize: 'clamp(1.5rem, 5vw, 3rem)', margin: 0 }}
           >
-            Selected gigs{' '}
+            Next 90 days{' '}
             <span style={{ color: 'var(--ed-fg-soft)' }}>2026</span>
           </h2>
           <div className="u-mono opacity-50">

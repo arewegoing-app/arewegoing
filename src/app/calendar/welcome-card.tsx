@@ -23,7 +23,7 @@ export function WelcomeCard({ dismissed }: { dismissed: boolean }) {
       <button
         type="button"
         onClick={dismiss}
-        aria-label="Dismiss"
+        aria-label="Dismiss welcome card"
         className="absolute right-2 top-2 ed-chip"
         style={{ minHeight: '36px', padding: '0.25rem 0.5rem' }}
       >

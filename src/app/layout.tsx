@@ -79,7 +79,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   ↳ Calendar
                 </Link>
                 <Link href="/mine" className="u-mono hover:text-[color:var(--ed-accent-2)]">
-                  ↳ Mine
+                  ↳ Your gigs
                 </Link>
                 {session?.user && (
                   <Link href="/owed" className="u-mono hover:text-[color:var(--ed-accent-2)]">
