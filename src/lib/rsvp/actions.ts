@@ -59,11 +59,32 @@ export async function applyTokenRsvp(token: string): Promise<RsvpResult> {
     .returning();
 
   if (inserted.length === 0) {
-    // Another request already consumed this token — return the existing RSVP outcome.
-    const [r] = await db.select().from(rsvps).where(eq(rsvps.eventInviteId, invite.id)).limit(1);
-    const existingStatus = (r?.status ?? status) as 'going' | 'maybe' | 'out';
+    // Another request already consumed this token. Read back the winning
+    // emailTokens row to find out which action actually won, then map to
+    // the same status the caller would have got first time round. We do
+    // NOT read the rsvps row here: the winning request might still be
+    // between its emailTokens insert and its rsvps insert, so the rsvps
+    // row may not exist yet.
+    const [winner] = await db
+      .select({ action: emailTokens.action })
+      .from(emailTokens)
+      .where(
+        and(
+          eq(emailTokens.recipientId, rid),
+          eq(emailTokens.eventId, eid),
+          eq(emailTokens.action, act),
+        ),
+      )
+      .limit(1);
+    const winnerStatus = winner ? actionToStatus[winner.action] : undefined;
+    if (!winnerStatus) {
+      // Should not happen — we conflicted on this exact (rid, eid, act) row
+      // so it must exist. Defend against the impossible case anyway.
+      log.error({ rid, eid, act }, 'rsvp.replay_winner_missing');
+      return { ok: false, reason: 'replay_unresolved' };
+    }
     log.info({ rid, eid, act, inviteId: invite.id }, 'rsvp.already_consumed');
-    return { ok: true, status: existingStatus, alreadyConsumed: true };
+    return { ok: true, status: winnerStatus, alreadyConsumed: true };
   }
 
   // First request through — write the RSVP and evaluate conditions exactly once.
