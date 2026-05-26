@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+#
+# Runs the same gates CI does, before the push leaves your machine.
+# Catches type errors, lint regressions, and broken unit tests so they
+# never appear on the PR.
+#
+# Enable for this repo:
+#   git config core.hooksPath .githooks
+#
+# Skip a single push (use sparingly, e.g. WIP branches):
+#   SKIP_PREPUSH=1 git push
+#
+# Skip individual gates:
+#   SKIP_TYPECHECK=1 git push
+#   SKIP_LINT=1 git push
+#   SKIP_TESTS=1 git push
+#   SKIP_ACTIONLINT=1 git push
+
+set -euo pipefail
+
+if [[ "${SKIP_PREPUSH:-}" == "1" ]]; then
+  echo "pre-push: SKIP_PREPUSH=1, skipping all gates"
+  exit 0
+fi
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Discover which files changed between the local HEAD and the upstream.
+# Falls back to "everything" when there's no upstream yet (first push of a branch).
+remote="$1"
+range=""
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$local_sha" == "0000000000000000000000000000000000000000" ]]; then
+    # Deleting a branch, nothing to check.
+    exit 0
+  fi
+  if [[ "$remote_sha" == "0000000000000000000000000000000000000000" ]]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+done
+
+changed_files=""
+if [[ -n "$range" ]]; then
+  changed_files=$(git diff --name-only "$range" 2>/dev/null || true)
+fi
+
+echo "pre-push: running CI gates against ${range:-HEAD}"
+
+# --- typecheck (fast, always run) ---
+if [[ "${SKIP_TYPECHECK:-}" != "1" ]]; then
+  echo "pre-push: pnpm typecheck"
+  pnpm typecheck
+fi
+
+# --- lint (fast, always run) ---
+if [[ "${SKIP_LINT:-}" != "1" ]]; then
+  echo "pre-push: pnpm lint"
+  pnpm lint
+fi
+
+# --- unit tests (slower, ~30-60s) ---
+if [[ "${SKIP_TESTS:-}" != "1" ]]; then
+  echo "pre-push: pnpm reset && pnpm test:unit"
+  pnpm reset
+  pnpm test:unit
+fi
+
+# --- actionlint (only when a workflow changed, and only if installed) ---
+if [[ "${SKIP_ACTIONLINT:-}" != "1" ]] && command -v actionlint >/dev/null 2>&1; then
+  if echo "$changed_files" | grep -qE "^\.github/workflows/"; then
+    echo "pre-push: actionlint (workflow files changed)"
+    actionlint .github/workflows/*.yml
+  fi
+fi
+
+echo "pre-push: all gates passed"

@@ -16,7 +16,7 @@ export function PromoteToRallyForm({ eventId }: { eventId: string }) {
       onClick={() =>
         startTransition(async () => {
           const r = await promoteToRally({ eventId });
-          if (r.ok) router.push(`/gigs/e/${r.slug}`);
+          if (r.ok) router.push(`/e/${r.slug}`);
         })
       }
       className="w-full sm:w-auto"

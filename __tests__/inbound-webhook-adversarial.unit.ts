@@ -16,7 +16,7 @@ const DATA_DIR = join(process.cwd(), '.gigs-data');
 if (existsSync(DATA_DIR)) rmSync(DATA_DIR, { recursive: true, force: true });
 mkdirSync(DATA_DIR, { recursive: true });
 
-const FIXTURES = join(process.cwd(), 'src/app/gigs/__tests__/fixtures/inbound');
+const FIXTURES = join(process.cwd(), '__tests__/fixtures/inbound');
 
 interface InboundFixture {
   from: string;
@@ -34,8 +34,8 @@ const makeReq = (
   headers: Record<string, string> = {},
 ): import('next/server').NextRequest => {
   // Lazy-required so NextRequest constructor is available without top-level await.
-  const { NextRequest } =
-    require('next/server') as typeof import('next/server');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { NextRequest } = require('next/server') as typeof import('next/server');
   return new NextRequest('http://localhost/x', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...headers },

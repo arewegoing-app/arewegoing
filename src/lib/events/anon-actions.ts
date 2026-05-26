@@ -44,7 +44,7 @@ export async function createAnonEvent(formData: FormData) {
       priceLow: parsed.priceLow ?? null,
     })
     .returning();
-  redirect(`/gigs/e/${event.slug}`);
+  redirect(`/e/${event.slug}`);
 }
 
 const claimInput = z.object({

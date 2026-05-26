@@ -86,13 +86,13 @@ export async function recordPurchase(input: z.input<typeof recordInput>) {
 
   const [buyer] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
   for (const { recipient } of pledged) {
-    const bailLink = `${APP_URL}/gigs/r?t=${signToken({
+    const bailLink = `${APP_URL}/r?t=${signToken({
       rid: recipient.id,
       eid: event.id,
       act: 'bail.request',
       ttlSec: BAIL_TTL_SEC,
     })}`;
-    const viewLink = `${APP_URL}/gigs/e/${event.slug}`;
+    const viewLink = `${APP_URL}/e/${event.slug}`;
     const tmpl = lockConfirmationEmail({
       buyer: { name: buyer?.name ?? '', email: buyer?.email ?? '' },
       recipient,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -39,9 +40,9 @@ export default function GigsError({
       ) : null}
       <div className="mt-6 flex justify-center gap-3">
         <Button onClick={reset}>Try again</Button>
-        <a href="/" className={cn(buttonVariants({ variant: 'outline' }))}>
+        <Link href="/" className={cn(buttonVariants({ variant: 'outline' }))}>
           Back to calendar
-        </a>
+        </Link>
       </div>
     </div>
   );

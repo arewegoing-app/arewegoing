@@ -5,6 +5,8 @@ import { customAlphabet } from 'nanoid';
 import { parseTicketEmail } from '@/lib/ingest/email-forward/parser';
 import { ensureMigrated, db } from '@/lib/db/client';
 import { users, events, recipients, eventInvites } from '@/lib/db/schema';
+import { isProductionEnv } from '@/lib/env';
+import { safeEqualSecret } from '@/lib/auth/secret-compare';
 import { log } from '@/lib/log';
 
 export const dynamic = 'force-dynamic';
@@ -23,16 +25,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // Bearer-token auth. The webhook provider (e.g. Resend/SendGrid) is the
   // authority on sender identity via upstream SPF/DKIM; this secret stops
   // anyone else POSTing forged `from:` payloads that would otherwise be
-  // accepted as that user's ticket purchase. Tests may set INBOUND_AUTH_OFF=1.
+  // accepted as that user's ticket purchase. INBOUND_AUTH_OFF=1 is a
+  // local-dev/test escape hatch only — never honoured in production.
   const requiredSecret = process.env.INBOUND_SECRET;
   if (!requiredSecret) {
-    if (process.env.INBOUND_AUTH_OFF !== '1') {
+    if (isProductionEnv() || process.env.INBOUND_AUTH_OFF !== '1') {
       log.warn({ reason: 'inbound_not_configured' }, 'inbound.unauthorized');
       return NextResponse.json({ error: 'inbound_not_configured' }, { status: 503 });
     }
   } else {
-    const provided = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
-    if (provided !== requiredSecret) {
+    const header = req.headers.get('authorization');
+    if (!header || !header.startsWith('Bearer ')) {
+      log.warn({ reason: 'bad_secret' }, 'inbound.unauthorized');
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
+    const provided = header.slice('Bearer '.length).trim();
+    if (!safeEqualSecret(provided, requiredSecret)) {
       log.warn({ reason: 'bad_secret' }, 'inbound.unauthorized');
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     }

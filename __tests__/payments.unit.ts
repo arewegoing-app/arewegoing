@@ -14,7 +14,11 @@ process.env.GIGS_TOKEN_SECRET = 'unit-test-secret-payments';
 process.env.STRIPE_MODE = 'stub';
 process.env.DEPOSIT_AMOUNT_CENTS = '500';
 
-const DATA_DIR = join(process.cwd(), '.gigs-data-payments');
+// client.ts uses .gigs-data/ as its PGlite dir regardless of what we set
+// locally, so we wipe THAT directory and ignore the historical
+// .gigs-data-payments name. Matches the pattern used by every other
+// shared-dir unit test.
+const DATA_DIR = join(process.cwd(), '.gigs-data');
 if (existsSync(DATA_DIR)) rmSync(DATA_DIR, { recursive: true, force: true });
 mkdirSync(DATA_DIR, { recursive: true });
 

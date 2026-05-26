@@ -5,6 +5,7 @@ import { CalendarIcon } from 'lucide-react';
 import { auth } from '@/lib/auth/auth';
 import { db, ensureMigrated } from '@/lib/db/client';
 import { eventInvites, events, owed, purchases, recipients } from '@/lib/db/schema';
+import { now } from '@/lib/time';
 import { Avatar } from '@/components/avatar';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +43,7 @@ export default async function OwedSummaryPage() {
     .where(eq(purchases.buyerUserId, userId))
     .orderBy(sql`${purchases.createdAt} desc`);
 
-  const now = Date.now();
+  const nowMs = now();
 
   // Per-recipient roll-up.
   type PerRecipient = {
@@ -78,7 +79,7 @@ export default async function OwedSummaryPage() {
         slug: r.eventSlug,
         title: r.eventTitle,
         amount: r.amountCents,
-        days: Math.max(0, Math.floor((now - new Date(r.purchaseCreatedAt).getTime()) / 86_400_000)),
+        days: Math.max(0, Math.floor((nowMs - new Date(r.purchaseCreatedAt).getTime()) / 86_400_000)),
       });
     }
   }
@@ -160,7 +161,7 @@ export default async function OwedSummaryPage() {
                           <ul className="space-y-0.5">
                             {r.unpaidEvents.slice(0, 3).map((e) => (
                               <li key={e.slug}>
-                                <Link href={`/gigs/e/${e.slug}`} className="hover:underline">
+                                <Link href={`/e/${e.slug}`} className="hover:underline">
                                   {e.title}
                                 </Link>{' '}
                                 ({e.days}d)

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseHtml, ingest } from '@/lib/ingest/fetch';
 
-const FIXTURES = join(process.cwd(), 'src/app/gigs/__tests__/fixtures');
+const FIXTURES = join(process.cwd(), '__tests__/fixtures');
 const read = (name: string) => readFileSync(join(FIXTURES, name), 'utf8');
 
 function ok<T>(r: { ok: true } | { ok: false; reason: string; message?: string }, label: string): asserts r is { ok: true } & T {

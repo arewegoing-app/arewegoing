@@ -245,7 +245,7 @@ function EventCard({
             <div className="min-w-0 flex-1">
               <h3 className="text-base font-medium leading-tight">
                 {!unclaimed ? (
-                  <Link href={`/gigs/e/${event.slug}`} className="hover:underline">
+                  <Link href={`/e/${event.slug}`} className="hover:underline">
                     {event.title}
                   </Link>
                 ) : event.ticketUrl ? (

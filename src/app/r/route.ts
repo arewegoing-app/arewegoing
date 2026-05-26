@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const v = verifyToken(token);
   if (!v.ok) {
     log.warn({ reason: v.reason }, 'r.action.rejected');
-    return NextResponse.redirect(new URL(`/gigs/r/error?reason=${v.reason}`, req.url));
+    return NextResponse.redirect(new URL(`/r/error?reason=${v.reason}`, req.url));
   }
 
   if (v.payload.act === 'feedback.submit') {
@@ -69,31 +69,31 @@ export async function GET(req: NextRequest) {
     const result = await applyReactionToken(token);
     if (!result.ok) {
       log.warn({ act: v.payload.act, reason: result.reason }, 'r.action.rejected');
-      return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+      return NextResponse.redirect(new URL(`/r/error?reason=${result.reason}`, req.url));
     }
     log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
-    return NextResponse.redirect(new URL(`/gigs/calendar?reaction=${result.kind}&event=${result.eventSlug}`, req.url));
+    return NextResponse.redirect(new URL(`/calendar?reaction=${result.kind}&event=${result.eventSlug}`, req.url));
   }
 
   if (v.payload.act === 'bail.claim') {
     const result = await applyResaleClaimToken(token);
     if (!result.ok) {
       log.warn({ act: v.payload.act, reason: result.reason }, 'r.action.rejected');
-      return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+      return NextResponse.redirect(new URL(`/r/error?reason=${result.reason}`, req.url));
     }
     log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
     const qs = `claimed=1${result.alreadyClaimed ? '&replay=1' : ''}`;
-    return NextResponse.redirect(new URL(`/gigs/e/${result.eventSlug}?${qs}`, req.url));
+    return NextResponse.redirect(new URL(`/e/${result.eventSlug}?${qs}`, req.url));
   }
 
   if (v.payload.act === 'bail.request') {
     const result = await applyBailRequestToken(token);
     if (!result.ok) {
       log.warn({ act: v.payload.act, reason: result.reason }, 'r.action.rejected');
-      return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+      return NextResponse.redirect(new URL(`/r/error?reason=${result.reason}`, req.url));
     }
     log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
-    return NextResponse.redirect(new URL(`/gigs/dropped`, req.url));
+    return NextResponse.redirect(new URL(`/dropped`, req.url));
   }
 
   const isPledge = v.payload.act === 'pledge.confirm' || v.payload.act === 'pledge.drop';
@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
     const result = await applyPledgeToken(token);
     if (!result.ok) {
       log.warn({ act: v.payload.act, reason: result.reason }, 'r.action.rejected');
-      return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+      return NextResponse.redirect(new URL(`/r/error?reason=${result.reason}`, req.url));
     }
     const [event] = await db.select().from(events).where(eq(events.id, v.payload.eid)).limit(1);
     if (!event) {
@@ -110,13 +110,13 @@ export async function GET(req: NextRequest) {
     }
     log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
     const qs = `pledge=${result.action}${result.alreadyConsumed ? '&replay=1' : ''}`;
-    return NextResponse.redirect(new URL(`/gigs/e/${event.slug}?${qs}`, req.url));
+    return NextResponse.redirect(new URL(`/e/${event.slug}?${qs}`, req.url));
   }
 
   const result = await applyTokenRsvp(token);
   if (!result.ok) {
     log.warn({ act: v.payload.act, reason: result.reason }, 'r.action.rejected');
-    return NextResponse.redirect(new URL(`/gigs/r/error?reason=${result.reason}`, req.url));
+    return NextResponse.redirect(new URL(`/r/error?reason=${result.reason}`, req.url));
   }
   const [event] = await db.select().from(events).where(eq(events.id, v.payload.eid)).limit(1);
   if (!event) {
@@ -124,5 +124,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/', req.url));
   }
   log.info({ act: v.payload.act, rid: v.payload.rid, eid: v.payload.eid }, 'r.action.applied');
-  return NextResponse.redirect(new URL(`/gigs/e/${event.slug}?status=${result.status}${result.alreadyConsumed ? '&replay=1' : ''}`, req.url));
+  return NextResponse.redirect(new URL(`/e/${event.slug}?status=${result.status}${result.alreadyConsumed ? '&replay=1' : ''}`, req.url));
 }

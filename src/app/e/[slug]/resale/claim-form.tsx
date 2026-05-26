@@ -34,7 +34,7 @@ export function ClaimResaleForm({ eventId, eventTitle }: { eventId: string; even
             );
             return;
           }
-          router.push(`/gigs/e/${res.eventSlug}?claimed=1`);
+          router.push(`/e/${res.eventSlug}?claimed=1`);
         })
       }
       aria-label={`Claim resale ticket for ${eventTitle}`}

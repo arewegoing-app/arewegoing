@@ -97,7 +97,7 @@ export default async function MyEventsPage() {
             <li key={e.id}>
               <Card className="transition-colors hover:bg-accent/40">
                 <CardHeader className="space-y-1">
-                  <Link href={`/gigs/e/${e.slug}`} className="font-medium hover:underline">
+                  <Link href={`/e/${e.slug}`} className="font-medium hover:underline">
                     {e.title}
                   </Link>
                   <p className="text-sm text-muted-foreground">

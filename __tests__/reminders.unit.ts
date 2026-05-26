@@ -1,5 +1,5 @@
 import { strict as assert } from 'node:assert';
-import { rmSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { rmSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 process.env.GIGS_TOKEN_SECRET = 'unit-test-secret';
@@ -74,7 +74,7 @@ async function main() {
   // Verify no email was generated for r3 specifically.
   const r3Files = readdirSync(OUTBOX).map((f) => f).filter((f) => f.endsWith('.json'));
   const recentR3 = r3Files.filter((f) => {
-    const json = JSON.parse(require('node:fs').readFileSync(join(OUTBOX, f), 'utf8'));
+    const json = JSON.parse(readFileSync(join(OUTBOX, f), 'utf8'));
     return json.to === 'c@t';
   });
   assert.equal(recentR3.length, 0, 'no reminder for fresh purchase');

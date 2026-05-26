@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth/auth';
 import { checkEventOwner } from '@/lib/auth/owner';
@@ -17,6 +18,7 @@ import {
   rsvps,
 } from '@/lib/db/schema';
 import { getReliabilityStats } from '@/lib/memory/stats';
+import { now } from '@/lib/time';
 import { listMyGroups } from '@/lib/groups/actions';
 import type { GroupWithCount } from '@/lib/groups/actions';
 import { PromoPanel } from './promo-panel';
@@ -50,7 +52,7 @@ export default async function EventDetailPage({
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
           This event is being organised by someone else. Ask them to share the calendar with you, or go to the{' '}
-          <a href="/" className="text-foreground underline">calendar</a> to see what&apos;s on.
+          <Link href="/" className="text-foreground underline">calendar</Link> to see what&apos;s on.
         </CardContent>
       </Card>
     );
@@ -84,7 +86,7 @@ export default async function EventDetailPage({
 
   // Groups — used to power the group filter in InviteForm.
   let myGroups: GroupWithCount[] = [];
-  let groupMembersMap: Record<string, string[]> = {};
+  const groupMembersMap: Record<string, string[]> = {};
   try {
     myGroups = await listMyGroups();
     // Build a map of groupId → recipientIds so InviteForm can filter client-side.
@@ -145,7 +147,7 @@ export default async function EventDetailPage({
         .where(eq(purchases.eventId, event.id))
     : [];
 
-  const now = Date.now();
+  const nowMs = now();
   const openListings = await db
     .select()
     .from(resaleListings)
@@ -165,7 +167,7 @@ export default async function EventDetailPage({
     recipientEmail: r.recipient.email,
     amountCents: r.owed.amountCents,
     paid: r.owed.paid === 1,
-    daysOutstanding: Math.max(0, Math.floor((now - new Date(r.purchase.createdAt).getTime()) / 86_400_000)),
+    daysOutstanding: Math.max(0, Math.floor((nowMs - new Date(r.purchase.createdAt).getTime()) / 86_400_000)),
     lastRemindedAt: r.owed.lastRemindedAt,
     bailed: rsvpByInvite.get(r.owed.eventInviteId)?.pledgeState === 'bailed',
   }));
@@ -199,8 +201,8 @@ export default async function EventDetailPage({
           eventVenue={event.venue}
           eventDate={event.startsAt ? new Date(event.startsAt).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : null}
           eventId={event.id}
-          shareUrl={`${process.env.GIGS_APP_URL ?? ''}/gigs/e/${event.slug}`}
-          icsUrl={`/gigs/e/${event.slug}/ics`}
+          shareUrl={`${process.env.GIGS_APP_URL ?? ''}/e/${event.slug}`}
+          icsUrl={`/e/${event.slug}/ics`}
           showRefresh={!!(event.sourceUrl || event.ticketUrl)}
         />
       </header>

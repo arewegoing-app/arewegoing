@@ -44,9 +44,11 @@ next-env.d.ts
 
 # gigs app local data
 /.gigs-data
+/.gigs-data-*
 /.gigs-outbox
 /playwright-report
 /test-results
 
 # claude
 /.claude/scheduled_tasks.lock
+/.claude/worktrees

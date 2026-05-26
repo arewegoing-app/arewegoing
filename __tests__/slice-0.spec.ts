@@ -25,8 +25,8 @@ function extractActionLink(text: string, action: 'in' | 'maybe' | 'out'): string
 async function signInAs(page: Page, email: string) {
   await page.goto('/signin');
   await page.locator('input[name="email"]').fill(email);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.waitForURL(/\/gigs$/);
+  await page.getByRole('button', { name: /Continue/ }).click();
+  await page.waitForURL('/');
 }
 
 async function createEventAndInvite(page: Page, title: string, recipientEmail: string) {
@@ -34,7 +34,7 @@ async function createEventAndInvite(page: Page, title: string, recipientEmail: s
   await page.locator('input[name="title"]').fill(title);
   await page.locator('input[name="venue"]').fill('San Fran');
   await page.getByRole('button', { name: 'Create event' }).click();
-  await page.waitForURL(/\/gigs\/e\//);
+  await page.waitForURL(/\/e\//);
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
 
   await page.locator('input[name="displayName"]').fill('Test Recipient');
