@@ -212,7 +212,9 @@ export const emailTokens = pgTable('email_tokens', {
   expiresAt: timestamp('expires_at').notNull(),
   consumedAt: timestamp('consumed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (t) => ({
+  uniqueConsumption: uniqueIndex('email_tokens_unique_consumption').on(t.recipientId, t.eventId, t.action),
+}));
 
 export const eventFeedback = pgTable('event_feedback', {
   id: id(),
