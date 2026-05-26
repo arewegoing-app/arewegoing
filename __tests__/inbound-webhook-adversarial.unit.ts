@@ -16,7 +16,7 @@ const DATA_DIR = join(process.cwd(), '.gigs-data');
 if (existsSync(DATA_DIR)) rmSync(DATA_DIR, { recursive: true, force: true });
 mkdirSync(DATA_DIR, { recursive: true });
 
-const FIXTURES = join(process.cwd(), 'src/app/gigs/__tests__/fixtures/inbound');
+const FIXTURES = join(process.cwd(), '__tests__/fixtures/inbound');
 
 interface InboundFixture {
   from: string;

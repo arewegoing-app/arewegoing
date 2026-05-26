@@ -31,7 +31,7 @@ async function main() {
   const pg = new PGlite(DATA_DIR);
   const db = drizzle(pg, { schema });
   const migrationSql = readFileSync(
-    pathJoin(process.cwd(), 'src/app/gigs/lib/db/migrations.sql'),
+    pathJoin(process.cwd(), 'src/lib/db/migrations.sql'),
     'utf8',
   );
   await pg.exec(migrationSql);
