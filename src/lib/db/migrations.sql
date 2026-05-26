@@ -299,3 +299,21 @@ create unique index if not exists group_members_group_recipient on group_members
 -- The unique constraint lets applyTokenRsvp use INSERT … ON CONFLICT DO NOTHING as an
 -- atomic idempotency check instead of a read-then-write SELECT + INSERT pair.
 create unique index if not exists email_tokens_unique_consumption on email_tokens(recipient_id, event_id, action);
+
+-- features-v2: intent log for clickable-shell features. One row per
+-- (feature_key, user_id, anon_id) — repeated taps upsert email + notify_opt_in.
+create table if not exists feature_interest (
+  id text primary key,
+  user_id text references users(id) on delete cascade,
+  anon_id text,
+  feature_key text not null,
+  email text,
+  notify_opt_in integer not null default 0,
+  meta text,
+  created_at timestamp not null default now(),
+  updated_at timestamp not null default now()
+);
+-- NULLS NOT DISTINCT (PG15+) so {anon_id='x'} repeats dedupe even though
+-- user_id is null on both rows. PGlite (PG16) and Neon (PG16) both support it.
+create unique index if not exists feature_interest_actor_feature
+  on feature_interest(feature_key, user_id, anon_id) nulls not distinct;
