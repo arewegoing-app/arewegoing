@@ -1,12 +1,13 @@
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm';
 import { db } from '../db/client';
+import { log } from '../log';
 import { events, eventInvites, owed, purchases, recipients, users } from '../db/schema';
 import { sendEmail } from './email';
 import { reminderEmail } from './templates-reminders';
 
 const DAYS = (n: number) => n * 24 * 60 * 60 * 1000;
 
-export type ReminderResult = { sent: number; skipped: number };
+export type ReminderResult = { sent: number; skipped: number; failures: number };
 
 export async function dispatchOverdueReminders(now: Date = new Date()): Promise<ReminderResult> {
   // Find unpaid owed rows where (purchase.created_at + threshold) is in the past
@@ -32,6 +33,7 @@ export async function dispatchOverdueReminders(now: Date = new Date()): Promise<
 
   let sent = 0;
   let skipped = 0;
+  let failures = 0;
   for (const row of candidates) {
     const elapsedMs = now.getTime() - new Date(row.purchase.createdAt).getTime();
     if (elapsedMs < DAYS(1)) {
@@ -53,14 +55,19 @@ export async function dispatchOverdueReminders(now: Date = new Date()): Promise<
       amountCents: row.owed.amountCents,
       daysOutstanding,
     });
-    await sendEmail({ to: row.recipient.email, subject: tmpl.subject, html: tmpl.html, text: tmpl.text });
-    await db
-      .update(owed)
-      .set({ lastRemindedAt: now })
-      .where(eq(owed.id, row.owed.id));
-    sent++;
+    try {
+      await sendEmail({ to: row.recipient.email, subject: tmpl.subject, html: tmpl.html, text: tmpl.text });
+      await db
+        .update(owed)
+        .set({ lastRemindedAt: now })
+        .where(eq(owed.id, row.owed.id));
+      sent++;
+    } catch (err) {
+      log.error({ err, owedId: row.owed.id, recipientId: row.recipient.id }, 'cron.reminders.send_failed');
+      failures++;
+    }
   }
-  return { sent, skipped };
+  return { sent, skipped, failures };
 }
 
 void and; void isNull; void lt; void or; void sql;

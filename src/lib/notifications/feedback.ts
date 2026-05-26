@@ -1,5 +1,6 @@
 import { and, eq, gte, isNull, lt } from 'drizzle-orm';
 import { db } from '../db/client';
+import { log } from '../log';
 import { eventFeedback, eventInvites, events, recipients, rsvps } from '../db/schema';
 import { signToken } from '../tokens/token-service';
 import { sendEmail } from './email';
@@ -23,7 +24,7 @@ function feedbackLink(recipientId: string, eventId: string, rating: number): str
   return `${BASE_URL}/r?t=${token}&rating=${rating}`;
 }
 
-export type FeedbackDispatchResult = { sent: number; skipped: number };
+export type FeedbackDispatchResult = { sent: number; skipped: number; failures: number };
 
 /**
  * Find events that ended between 24 h and 48 h ago. For each `going` or
@@ -47,6 +48,7 @@ export async function dispatchPostEventFeedback(
 
   let sent = 0;
   let skipped = 0;
+  let failures = 0;
 
   for (const event of targetEvents) {
     // Invites for going/conditional recipients.
@@ -87,14 +89,6 @@ export async function dispatchPostEventFeedback(
         continue;
       }
 
-      // Insert the feedback row before sending — if the email fails we won't
-      // retry until the next cron window, which is fine.
-      await db.insert(eventFeedback).values({
-        eventId: event.id,
-        eventInviteId: row.invite.id,
-        feedbackSentAt: now,
-      });
-
       const rid = row.recipient.id;
       const eid = event.id;
 
@@ -108,12 +102,24 @@ export async function dispatchPostEventFeedback(
       };
 
       const tmpl = postEventFeedbackEmail({ recipient: row.recipient, event, links });
-      await sendEmail({ to: row.recipient.email, subject: tmpl.subject, html: tmpl.html, text: tmpl.text });
-      sent++;
+      try {
+        await sendEmail({ to: row.recipient.email, subject: tmpl.subject, html: tmpl.html, text: tmpl.text });
+        // Insert the feedback row only after a successful send, so a failed
+        // delivery is retried on the next cron run rather than silently dropped.
+        await db.insert(eventFeedback).values({
+          eventId: event.id,
+          eventInviteId: row.invite.id,
+          feedbackSentAt: now,
+        });
+        sent++;
+      } catch (err) {
+        log.error({ err, recipientId: rid, eventId: eid }, 'cron.feedback.send_failed');
+        failures++;
+      }
     }
   }
 
-  return { sent, skipped };
+  return { sent, skipped, failures };
 }
 
 // Keep the import of `isNull` from being removed by the linter.
