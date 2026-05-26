@@ -101,7 +101,16 @@ export async function sendInvites(input: { eventId: string; recipientIds: string
     ? event.ownerUserId === id.userId
     : event.anonOwnerId === id.anonId;
   if (!isOwner) throw new Error('not_owner');
-  const recips = await db.select().from(recipients).where(inArray(recipients.id, parsed.recipientIds));
+  const ownerScope = id.userId
+    ? eq(recipients.ownerUserId, id.userId)
+    : eq(recipients.anonOwnerId, id.anonId!);
+  const recips = await db
+    .select()
+    .from(recipients)
+    .where(and(inArray(recipients.id, parsed.recipientIds), ownerScope));
+  if (recips.length !== parsed.recipientIds.length) {
+    throw new Error('recipient_not_owned');
+  }
   const buyerName = id.userId
     ? (await db.select().from(users).where(eq(users.id, id.userId)).limit(1))[0]?.name ?? ''
     : event.anonOwnerName ?? '';
