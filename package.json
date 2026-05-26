@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "typecheck": "tsc --noEmit",
     "test:unit": "for f in __tests__/*.unit.ts; do echo \"=== $f ===\"; npx tsx \"$f\" || exit 1; done",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
