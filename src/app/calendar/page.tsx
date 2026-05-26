@@ -11,6 +11,7 @@ import { CalendarReactions } from './reactions-row';
 import { ClaimForm } from './claim-form';
 import { WelcomeCard } from './welcome-card';
 import { SeriesFollowButton } from './series-follow';
+import { NotifyMeButton } from '@/components/notify-me-button';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
@@ -274,6 +275,20 @@ export default async function CalendarPage({
             )}
           </div>
         )}
+      </section>
+
+      {/* Notify-me strip — slice 3 wiring demo. */}
+      <section
+        className="ed-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
+      >
+        <div>
+          <div className="u-mono opacity-50">[05] / Heads up</div>
+          <h2 className="u-display mt-1 text-2xl">
+            Ping me when{' '}
+            <em className="not-italic u-accent-bg">new things</em> ship.
+          </h2>
+        </div>
+        <NotifyMeButton featureKey="general.new_features" label="Notify me" />
       </section>
 
       {/* Footer ledger */}
