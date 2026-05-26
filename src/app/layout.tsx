@@ -11,7 +11,7 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'gigs',
+  title: 'are we going?',
   description: 'Group ticket coordination for live music',
   manifest: '/manifest.json',
 };
@@ -42,7 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3 sm:px-6"
             >
               <Link href="/" className="font-mono text-base font-semibold sm:text-lg">
-                gigs
+                are we going?
               </Link>
               <div className="flex items-center gap-3 text-sm">
                 <Link href="/mine" className="text-muted-foreground hover:text-foreground">

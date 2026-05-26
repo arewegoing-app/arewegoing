@@ -156,8 +156,8 @@ Three modest streams, deliberately ordered so the platform fee is the smallest:
 
 Two research scans inform this proposal:
 
-1. `src/app/gigs/COMPETITIVE-NOTES.md` — standalone tools (Partiful, Hobnob, Lu.ma, Splitwise, DICE, Posh, Audience Republic, Withfriends, Eventbrite, Songkick, Bandsintown, RA, Skiddle, Calendly).
-2. `src/app/gigs/COMPETITIVE-NOTES-PLATFORMS.md` — features inside major consumer platforms (Meta, Apple, Google, Spotify, Discord, Snapchat, TikTok, Ticketmaster, SeatGeek).
+1. `COMPETITIVE-NOTES.md` — standalone tools (Partiful, Hobnob, Lu.ma, Splitwise, DICE, Posh, Audience Republic, Withfriends, Eventbrite, Songkick, Bandsintown, RA, Skiddle, Calendly).
+2. `COMPETITIVE-NOTES-PLATFORMS.md` — features inside major consumer platforms (Meta, Apple, Google, Spotify, Discord, Snapchat, TikTok, Ticketmaster, SeatGeek).
 
 **The architectural validation across both scans**: every platform that does this well runs transfer, invite, and pledge through one-time tokens or signed links. The prototype already does this.
 
