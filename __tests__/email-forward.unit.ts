@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { parseTicketEmail } from '@/lib/ingest/email-forward/parser';
 import type { InboundEmail } from '@/lib/ingest/email-forward/parser';
 
-const FIXTURES = join(process.cwd(), 'src/app/gigs/__tests__/fixtures/inbound');
+const FIXTURES = join(process.cwd(), '__tests__/fixtures/inbound');
 
 function loadFixture(name: string): InboundEmail {
   const raw = readFileSync(join(FIXTURES, name), 'utf8');
