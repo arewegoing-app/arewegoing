@@ -363,6 +363,32 @@ export const featureInterest = pgTable('feature_interest', {
 
 export type FeatureInterest = typeof featureInterest.$inferSelect;
 
+/**
+ * features-v2 slice 7: pre-drinks / afters host votes per event.
+ * One row per actor + kind. Voting again switches your candidate; tallies
+ * roll up by candidate_label.
+ */
+export const hostVoteKindEnum = pgEnum('host_vote_kind', ['predrinks', 'afters']);
+
+export const hostVotes = pgTable('host_votes', {
+  id: id(),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  kind: hostVoteKindEnum('kind').notNull(),
+  candidateLabel: text('candidate_label').notNull(),
+  voterUserId: text('voter_user_id').references(() => users.id, { onDelete: 'cascade' }),
+  voterAnonId: text('voter_anon_id'),
+  votedAt: timestamp('voted_at').notNull().defaultNow(),
+}, (t) => ({
+  uniqVoter: uniqueIndex('host_votes_voter').on(
+    t.eventId,
+    t.kind,
+    t.voterUserId,
+    t.voterAnonId,
+  ),
+}));
+
+export type HostVote = typeof hostVotes.$inferSelect;
+
 // ---------------------------------------------------------------------------
 
 export type User = typeof users.$inferSelect;

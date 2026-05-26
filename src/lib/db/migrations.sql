@@ -332,3 +332,20 @@ create table if not exists feature_interest (
 -- user_id is null on both rows. PGlite (PG16) and Neon (PG16) both support it.
 create unique index if not exists feature_interest_actor_feature
   on feature_interest(feature_key, user_id, anon_id) nulls not distinct;
+
+-- features-v2 slice 7: pre-drinks / afters host votes per event.
+do $$ begin
+  create type host_vote_kind as enum ('predrinks', 'afters');
+exception when duplicate_object then null; end $$;
+
+create table if not exists host_votes (
+  id text primary key,
+  event_id text not null references events(id) on delete cascade,
+  kind host_vote_kind not null,
+  candidate_label text not null,
+  voter_user_id text references users(id) on delete cascade,
+  voter_anon_id text,
+  voted_at timestamp not null default now()
+);
+create unique index if not exists host_votes_voter
+  on host_votes(event_id, kind, voter_user_id, voter_anon_id) nulls not distinct;
