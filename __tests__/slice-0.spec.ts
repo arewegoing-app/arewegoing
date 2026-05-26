@@ -39,7 +39,7 @@ async function createEventAndInvite(page: Page, title: string, recipientEmail: s
 
   await page.locator('input[name="displayName"]').fill('Test Recipient');
   await page.locator('input[name="email"]').fill(recipientEmail);
-  await page.getByRole('button', { name: 'Add' }).click();
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.locator('input[type="checkbox"]').first()).toBeVisible();
   await page.locator('input[type="checkbox"]').first().check();
   await page.getByRole('button', { name: /Send invites/ }).click();

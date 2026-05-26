@@ -90,7 +90,7 @@ test.describe('Group scenario — full friend-group rally end-to-end', () => {
     for (const r of cast) {
       await buyer.locator('input[name="displayName"]').fill(r.name);
       await buyer.locator('input[name="email"]').fill(r.email);
-      await buyer.getByRole('button', { name: 'Add' }).click();
+      await buyer.getByRole('button', { name: 'Add', exact: true }).click();
       await buyer.waitForTimeout(300);
     }
 
