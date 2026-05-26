@@ -1,8 +1,8 @@
-import { timingSafeEqual } from 'node:crypto';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { isProductionEnv } from '@/lib/env';
 import { log } from '@/lib/log';
+import { safeEqualSecret } from './secret-compare';
 
 /**
  * Header-only bearer auth for Vercel Cron handlers. Returns a NextResponse
@@ -35,12 +35,7 @@ export function requireCronAuth(req: NextRequest, job: string): NextResponse | n
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
   const provided = header.slice('Bearer '.length).trim();
-
-  // Constant-time compare. Length mismatch is a fast deny because
-  // timingSafeEqual throws on different-length buffers.
-  const providedBuf = Buffer.from(provided);
-  const expectedBuf = Buffer.from(requiredSecret);
-  if (providedBuf.length !== expectedBuf.length || !timingSafeEqual(providedBuf, expectedBuf)) {
+  if (!safeEqualSecret(provided, requiredSecret)) {
     log.warn({ job }, 'cron.unauthorized');
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }

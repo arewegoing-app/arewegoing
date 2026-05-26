@@ -10,9 +10,9 @@ const DAYS = (n: number) => n * 24 * 60 * 60 * 1000;
 export type ReminderResult = { sent: number; skipped: number; failures: number };
 
 export async function dispatchOverdueReminders(now: Date = new Date()): Promise<ReminderResult> {
-  // Find unpaid owed rows where (purchase.created_at + threshold) is in the past
-  // AND (last_reminded_at is null OR last_reminded_at < threshold-window-ago).
-  // Three thresholds: 24h, 3d, 7d. Send one reminder per overdue threshold per row.
+  // Find unpaid owed rows where (purchase.created_at + 24h) is in the past
+  // AND (last_reminded_at is null OR last_reminded_at < minGapMs ago).
+  // Cadence: daily up to 3 days old, every 2 days after that.
 
   const candidates = await db
     .select({
