@@ -4,7 +4,7 @@
 // failures — those are expected UX.
 
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
-import { readdirSync, rmSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const OUTBOX = join(process.cwd(), '.gigs-outbox');
@@ -234,7 +234,7 @@ test.describe('Buttons smoke — every page, every button', () => {
     // Pull the "I'm in" link out of the outbox and click it.
     const files = readdirSync(OUTBOX).filter((f) => f.endsWith('.json'));
     if (files.length) {
-      const last = JSON.parse(require('node:fs').readFileSync(join(OUTBOX, files[files.length - 1]), 'utf8'));
+      const last = JSON.parse(readFileSync(join(OUTBOX, files[files.length - 1]), 'utf8'));
       const m = last.text.match(/I'm in:\s*(\S+)/);
       if (m) {
         await request.get(m[1], { maxRedirects: 0 });
@@ -275,7 +275,7 @@ test.describe('Buttons smoke — every page, every button', () => {
 
     // Grab respond link from the email.
     const files = readdirSync(OUTBOX).filter((f) => f.endsWith('.json'));
-    const last = JSON.parse(require('node:fs').readFileSync(join(OUTBOX, files[files.length - 1]), 'utf8'));
+    const last = JSON.parse(readFileSync(join(OUTBOX, files[files.length - 1]), 'utf8'));
     const m = last.text.match(/Set conditions[^:]*:\s*(\S+)|respond[^:]*:\s*(\S+)|Got a condition[^:]*:\s*(\S+)/i);
     const respondUrl = m ? (m[1] ?? m[2] ?? m[3]) : null;
 

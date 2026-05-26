@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function FeedbackThanksPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-black text-white p-6">
@@ -7,12 +9,12 @@ export default function FeedbackThanksPage() {
         <p className="text-sm text-white/60">
           Noted. It helps figure out whether to go back next time.
         </p>
-        <a
+        <Link
           href="/"
           className="mt-6 inline-block text-sm text-white/50 hover:text-white/80 transition-colors"
         >
           Back to gigs
-        </a>
+        </Link>
       </div>
     </main>
   );

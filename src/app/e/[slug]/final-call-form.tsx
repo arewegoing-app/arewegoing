@@ -15,7 +15,7 @@ export function FinalCallForm({ eventId, defaultPrice }: { eventId: string; defa
     <div className="rounded border border-amber-700/40 bg-amber-900/10 p-4 space-y-2">
       <div className="text-sm font-medium text-amber-300">Start final call</div>
       <p className="text-sm text-neutral-400">
-        Asks every 'going' recipient to pledge a hard commitment. After the deadline, anyone who didn't confirm drops to 'maybe'.
+        Asks every &apos;going&apos; recipient to pledge a hard commitment. After the deadline, anyone who didn&apos;t confirm drops to &apos;maybe&apos;.
       </p>
       <div className="flex gap-2">
         <input

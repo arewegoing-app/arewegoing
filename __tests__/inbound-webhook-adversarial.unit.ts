@@ -34,8 +34,8 @@ const makeReq = (
   headers: Record<string, string> = {},
 ): import('next/server').NextRequest => {
   // Lazy-required so NextRequest constructor is available without top-level await.
-  const { NextRequest } =
-    require('next/server') as typeof import('next/server');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { NextRequest } = require('next/server') as typeof import('next/server');
   return new NextRequest('http://localhost/x', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...headers },
