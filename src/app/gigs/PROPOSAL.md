@@ -1,17 +1,18 @@
 # Group ticket coordination, owned by the people who use it
 
-**Version 0.1 — 2026-05-26**
+**Version 0.2 — 2026-05-26**
 **Status: Living draft, iterated alongside the prototype.**
 
-> A friends-first ticket coordination tool for live music in Aotearoa. Built as a worker cooperative. Designed to send a share of the value back to the artists, promoters, and venues whose work the platform sits on top of.
+> A friends-first ticket coordination tool for live music in Aotearoa. Incorporated as a worker cooperative from day one. Designed to send a share of the value back to the artists, promoters, and venues whose work the platform sits on top of.
 
 This proposal is the case for funding the next 12 months of work. It is short on the front, deep in the back. Skim the top, open the depth blocks if you want the engineering, financial, and governance detail.
 
 ## The ask
 
-- **Pre-seed**: NZD $120k–$180k for 12 months of one full-time engineer (the founder) and part-time community + design contractors.
-- **Structure**: not equity in the traditional sense. Funders get a redeemable note plus an advisory seat on a transitional board, with founder commitment to convert to a worker-cooperative structure (ICA / Companies Office Co-op) within 18 months.
-- **Use of funds**: 60% engineering and infrastructure, 20% community + onboarding work in Wellington's live-music scene, 10% legal (coop incorporation, contracts with promoters), 10% reserve.
+- **Pre-formation seed capital**: NZD $120k–$180k for 12 months covering three founding workers (engineer, community organiser, design contractor at 0.4 FTE each averaging out) plus incorporation, infrastructure, and reserve.
+- **Funder shape**: non-voting community shares + patient member loans + grant capital, in any mix the funder is comfortable with. No traditional equity, no convertible notes, no board seat in exchange for capital. (See governance depth block for the legal mechanism.)
+- **Return**: community shares pay a capped dividend (suggested 4–6% APR) once the coop is in surplus. Patient member loans repay at the same rate. Funders are recognised in the coop's annual report. No upside above the cap, no claim on coop assets at wind-up beyond principal.
+- **Use of funds**: 55% wages for the three founding workers, 15% infrastructure (Vercel, Neon, Resend, Stripe), 15% legal (coop incorporation, promoter contracts, community-share offer documentation), 10% community onboarding (Wellington's live-music scene), 5% reserve.
 
 ## Why this exists
 
@@ -71,15 +72,16 @@ The numbers above are starting points and would be set by the cooperative's firs
 
 ## How a year of investment compounds
 
-Three lanes run in parallel.
+Four lanes run in parallel.
 
-1. **Festival mode v1 → general availability.** Splore 2027, Rhythm and Vines, Soundsplash, Homegrown, Bay Dreams, Northern Bass curated as canonical festival objects. "Are you going?" surface live before October 2026.
-2. **First promoter relationships.** 3–5 Wellington promoters (Welcome to Nowhere, Heaters, Pure Loft Productions, Movement, anyone we can name and shake hands with) opted in to receive group-buy enquiries.
-3. **Worker coop formalised.** Trust deed and incorporation done by month 12. First three workers under coop employment contracts.
+1. **Coop incorporated, three founding workers signed on.** Months 1–2. Constitution, member agreements, community-share offer document filed.
+2. **Festival mode v1 → general availability.** Splore 2027, Rhythm and Vines, Soundsplash, Homegrown, Bay Dreams, Northern Bass curated as canonical festival objects. "Are you going?" surface live before October 2026.
+3. **First promoter relationships.** 3–5 Wellington promoters (Welcome to Nowhere, Heaters, Pure Loft Productions, Movement, anyone we can name and shake hands with) opted in to receive group-buy enquiries.
+4. **First patronage dividend declared.** Month 12. Even a token surplus distribution proves the mechanism works for funders and future workers.
 
 ## One question for funders
 
-Are you willing to back a redeemable note that converts to coop membership rights rather than equity, knowing the upside is capped and the downside is your principal? Everything else flows from that decision.
+Are you willing to back a capped-return community share or member loan, knowing your principal earns 4–6% APR if the coop succeeds and is at risk if it doesn't, and that the coop's surplus flows to workers, artists, and the scene rather than to a cap table? Everything else flows from that decision.
 
 ---
 
@@ -121,14 +123,16 @@ Annual festivals are the cleanest wedge for v1. Most of the calendar discovery i
 </details>
 
 <details>
-<summary><strong>Worker coop governance — how decisions get made</strong></summary>
+<summary><strong>Worker coop governance — coop from day one</strong></summary>
 
-- **Structure**: New Zealand cooperative company under the Co-operative Companies Act 1996. Worker shares (one share per worker, one vote regardless of capital contribution).
-- **Founding workers**: the engineer-founder (Oli), plus seats reserved for design contractor, community organiser, and a Wellington-music-scene representative as those roles are filled.
-- **Board (transitional, year 1)**: founder + two advisor seats funded by the pre-seed notes. Converts to elected worker-coop board by month 12.
-- **Patronage dividend**: per the rules of the coop, surplus may be distributed to workers based on hours and contribution rather than capital. This is the legal mechanism that lets the coop reward labour without becoming a charity.
-- **Investor exit**: pre-seed notes are redeemable from operating cash flow once the coop has 18 months of runway in reserve. Capped multiple (1.5x to 2x, to be set in the term sheet). No equity-style ownership of the coop itself; the redeemable note is debt-like.
-- **Why this shape**: keeps the door open to genuine cooperative ownership without forcing the early funders to take on coop-member obligations. They get their money back with a fair multiple; they don't get long-tail control.
+- **Structure**: New Zealand cooperative company under the Co-operative Companies Act 1996. Incorporated before any capital is accepted. Worker membership only — one share per worker, one vote regardless of capital contribution or seniority.
+- **Founding workers (day-one members)**: three. The engineer-founder (Oli), a community organiser, a design contractor. All three sign worker-member agreements and contribute nominal capital ($1–$100 per share, the coop sets the par value) at incorporation.
+- **Board**: all three founding members from day one. Elected from the worker membership; no advisor seats granted in exchange for capital. As the coop grows past three members, the board scales according to the constitution.
+- **Capital instruments (non-voting)**: external funders subscribe to **community shares** (capped-return, non-voting, redeemable from surplus) or **patient member loans** (subordinated debt, fixed-rate, no governance rights). Neither carries a vote, neither converts to equity, neither sits on the board. This is the legal mechanism that lets the coop accept outside capital without diluting cooperative ownership.
+- **Patronage dividend**: per the rules of the coop, surplus may be distributed to worker-members based on hours and contribution rather than capital. This is the standard NZ coop instrument and the legal basis for the coop to reward labour over capital.
+- **Funder return path**: community shares pay 4–6% APR dividend (capped, set in the offer document) once the coop is in operating surplus. Patient member loans repay at the same rate over an agreed term (5–7 years suggested). At wind-up, capital holders receive principal back where assets allow; surplus assets flow to the Wellington music infrastructure fund per the constitution.
+- **Why this shape**: the coop is the entity, not a future state. Funders are stakeholders, not shareholders. Workers control the company. Everyone knows on day one what they're signing up for.
+- **Reference NZ coops using community shares or member-loan capital**: Loomio (Wellington, software), Enspiral (Wellington, network), Co-op Capital Aotearoa (financing).
 
 </details>
 
@@ -178,7 +182,8 @@ Two research scans inform this proposal:
 
 - **Risk**: The ticketing platforms shut us out of their HTML. **Mitigation**: we already have adapters for 6 platforms plus email forwarding. Email forwarding is the truly resilient ingestion path.
 - **Risk**: Promoters don't engage with the group-code asks. **Mitigation**: start with promoters Oli knows personally in Wellington (5+ on the list). Year 1 success looks like 3 of them in the loop, not 30.
-- **Risk**: The coop legal structure takes longer than 12 months. **Mitigation**: pre-seed notes don't depend on coop incorporation. The founder operates as a sole trader for year 1; the coop incorporation is a year-end goal, not a precondition.
+- **Risk**: Coop incorporation takes longer than expected, blocking the capital offer. **Mitigation**: incorporation under the Co-operative Companies Act 1996 is a known 4–8 week process when the constitution is drafted in advance. Engage a coop-specialist lawyer at week 1 of the funding round so the entity exists before any capital is accepted. Loomio and Enspiral are local references for the lawyer to draw from.
+- **Risk**: External funders find the non-voting community-share structure unfamiliar and pass. **Mitigation**: the same structure has funded UK community pubs, Mātauranga Co-op Fund grantees, and the Loomio coop here. The offer document explains the cap, the return path, and the wind-up provisions plainly. Funders who want equity-style upside are not the right funders for this coop.
 - **Risk**: NextAuth, Stripe, or Neon pricing changes break unit economics. **Mitigation**: all are commodity services with multiple competitors. Switching cost is real but not catastrophic.
 - **Risk**: The friend-group market is too small to support a coop wage. **Mitigation**: the promoter relationship is the actual revenue. Friend groups are the demand surface that makes the promoter pay. We've sized this at 50–150 active groups in year 1, which is a small fraction of Wellington's gig-going population.
 
@@ -205,11 +210,14 @@ Treat this as a Git-tracked living document, not a deck.
 
 ## Open questions that need your answer
 
-- **Funder shape**: who specifically are we approaching? Friends-and-family round, a music-aligned community fund, a coop-aligned investor (Mātauranga Co-op Fund or similar)?
-- **Coop legal lead**: do you have an introduction to a Wellington cooperative lawyer? Names: Brookfields, Anthony Harper, or smaller coop-specialist firms.
-- **First promoter relationships**: which 3–5 names do we approach in week 1?
+- **Funder shortlist**: who specifically are we approaching for community shares or member loans? Friends-and-family contributors, a music-aligned community fund, the Mātauranga Co-op Fund, Co-op Capital Aotearoa, Loomio's investor network?
+- **Coop lawyer**: introduction to a Wellington cooperative lawyer. Names to investigate: the lawyer who incorporated Loomio, Anthony Harper's cooperative team, smaller coop-specialist firms.
+- **Founding workers two and three**: the engineer seat is filled. Who are the community organiser and design contractor we incorporate with on day one?
+- **First promoter relationships**: which 3–5 Wellington promoters do we approach in week 1?
 - **Brand**: what is this product called when it's not "the gigs prototype"?
+- **Constitution**: who writes the first draft? Pull from existing NZ coop templates (Cooperative Business NZ has a model constitution).
 
 ## Revision history
 
+- **v0.2 (2026-05-26)**: Coop from day one. Removed the transitional sole-trader path and the redeemable-note-then-convert structure. Replaced with non-voting community shares + patient member loans subscribed after coop incorporation. Three founding workers from day one. Capped 4–6% APR return for funders.
 - **v0.1 (2026-05-26)**: First draft. Incorporates the Tier 1/2/3 feature framing, festival-mode wedge, two competitive scans, the worker-coop governance shape, and a preliminary funding ask. Numbers are placeholders.
