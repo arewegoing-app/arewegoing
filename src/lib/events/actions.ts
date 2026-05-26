@@ -7,19 +7,13 @@ import { customAlphabet } from 'nanoid';
 import { db } from '../db/client';
 import { events, recipients, eventInvites, users, groupMembers } from '../db/schema';
 import { auth } from '../auth/auth';
-import { getOrSetAnonId, readAnonId } from '../anon/identity';
+import { getOrSetAnonId } from '../anon/identity';
 import { signToken } from '../tokens/token-service';
 import { sendEmail } from '../notifications/email';
 import { inviteEmail } from '../notifications/templates';
 import { getOrCreateDefaultGroup } from '../groups/actions';
 
 const makeSlug = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
-
-async function requireBuyer() {
-  const session = await auth();
-  if (!session?.user?.id) redirect('/signin');
-  return session.user;
-}
 
 // Returns either { userId } for signed-in owners or { anonId } for cookie-only owners.
 // Sets the anon cookie if missing so the caller has a stable identity.
@@ -37,16 +31,28 @@ const createEventInput = z.object({
   startsAt: z.string().optional(),
   ticketUrl: z.url().optional().or(z.literal('')),
   priceLow: z.coerce.number().int().nonnegative().optional(),
+  // features-v2 slice 6: anon submitters may optionally identify themselves so
+  // they can later be reached out to / matched to the cookie identity.
+  anonOwnerName: z.string().max(100).optional(),
+  anonOwnerEmail: z.email().max(254).optional().or(z.literal('')),
 });
 
 export async function createEvent(formData: FormData) {
-  const buyer = await requireBuyer();
+  const id = await ownerIdentity();
+  if (!id.userId && !id.anonId) throw new Error('no_identity');
   const raw = Object.fromEntries(formData.entries());
-  const parsed = createEventInput.parse({ ...raw, ticketUrl: raw.ticketUrl || undefined });
+  const parsed = createEventInput.parse({
+    ...raw,
+    ticketUrl: raw.ticketUrl || undefined,
+    anonOwnerEmail: raw.anonOwnerEmail || undefined,
+  });
   const slug = makeSlug();
   const [event] = await db.insert(events).values({
     slug,
-    ownerUserId: buyer.id,
+    ownerUserId: id.userId,
+    anonOwnerId: id.anonId,
+    anonOwnerName: id.userId ? null : parsed.anonOwnerName ?? null,
+    anonOwnerEmail: id.userId ? null : parsed.anonOwnerEmail || null,
     title: parsed.title,
     venue: parsed.venue ?? null,
     city: parsed.city,
