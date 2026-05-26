@@ -8,6 +8,7 @@
  */
 
 import { strict as assert } from 'node:assert';
+import { NextRequest } from 'next/server';
 
 // requireCronAuth only uses process.env and req.headers — no DB, no cookies.
 // We can import it and call it directly in a plain Node.js context.
@@ -19,9 +20,7 @@ const env = process.env as Record<string, string | undefined>;
 function makeReq(
   headers: Record<string, string> = {},
   search = '',
-): import('next/server').NextRequest {
-  const { NextRequest } =
-    require('next/server') as typeof import('next/server');
+): NextRequest {
   const url = `http://localhost/api/cron/test${search ? `?${search}` : ''}`;
   return new NextRequest(url, { method: 'GET', headers });
 }
