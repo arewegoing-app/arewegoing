@@ -48,6 +48,24 @@ If your change touches a flow with an e2e spec, run that too:
 pnpm test:e2e
 ```
 
+### Optional: run the gates on every push
+
+The repo ships a `pre-push` hook that runs typecheck, lint, and the unit
+test suite before any push leaves your machine. Opt in:
+
+```bash
+pnpm hooks:enable
+```
+
+Skip a single push if you really need to (rare):
+
+```bash
+SKIP_PREPUSH=1 git push
+```
+
+Or skip a single gate: `SKIP_TYPECHECK=1`, `SKIP_LINT=1`, `SKIP_TESTS=1`,
+`SKIP_ACTIONLINT=1`. `pnpm hooks:disable` reverts to git's default hooks.
+
 ## PR shape
 
 - Use the PR template. The skim layer (TL;DR, why, what's in, how to review) is the part most reviewers read.
