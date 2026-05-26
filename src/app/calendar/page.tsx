@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { and, asc, gte, lte, or, isNull, eq, sql } from 'drizzle-orm';
+import { and, asc, gte, lte, or, isNull, eq, sql, ilike } from 'drizzle-orm';
 import { CheckCircle2Icon, EyeIcon, TicketIcon, TicketCheckIcon, XCircleIcon } from 'lucide-react';
 import { auth } from '@/lib/auth/auth';
 import { db, ensureMigrated } from '@/lib/db/client';
@@ -12,6 +12,7 @@ import { ClaimForm } from './claim-form';
 import { WelcomeCard } from './welcome-card';
 import { SeriesFollowButton } from './series-follow';
 import { NotifyMeButton } from '@/components/notify-me-button';
+import { FilterBar } from './filter-bar';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,15 @@ type EventRow = typeof events.$inferSelect;
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reaction?: string; event?: string }>;
+  searchParams: Promise<{
+    reaction?: string;
+    event?: string;
+    q?: string;
+    venue?: string;
+    from?: string;
+    to?: string;
+    priceMax?: string;
+  }>;
 }) {
   await ensureMigrated();
   const session = await auth();
@@ -30,6 +39,14 @@ export default async function CalendarPage({
   const cookieStore = await cookies();
   const welcomeDismissed = cookieStore.get('gigs_welcome_dismissed')?.value === '1';
   const anonId = await readAnonId();
+
+  // Extract filter params.
+  const filterQ = sp.q?.trim() || undefined;
+  const filterVenue = sp.venue?.trim() || undefined;
+  const filterFrom = sp.from?.trim() || undefined;
+  const filterTo = sp.to?.trim() || undefined;
+  const filterPriceMax = sp.priceMax?.trim() ? Number(sp.priceMax) : undefined;
+  const hasFilters = !!(filterQ || filterVenue || filterFrom || filterTo || filterPriceMax != null);
 
   // Load this viewer's series subscriptions once so each card knows whether to
   // show "Follow" or "Following".
@@ -55,26 +72,63 @@ export default async function CalendarPage({
     ? or(isNull(events.ownerUserId), eq(events.ownerUserId, session!.user!.id))!
     : isNull(events.ownerUserId);
 
+  // Build optional filter conditions.
+  const fromDate = filterFrom ? new Date(filterFrom) : undefined;
+  // End-of-day for the `to` filter.
+  const toDate = filterTo
+    ? (() => {
+        const d = new Date(filterTo);
+        d.setHours(23, 59, 59, 999);
+        return d;
+      })()
+    : undefined;
+
+  const searchFilter =
+    filterQ != null
+      ? or(
+          ilike(events.title, `%${filterQ}%`),
+          ilike(events.venue, `%${filterQ}%`),
+        )
+      : undefined;
+  const venueFilter = filterVenue != null ? eq(events.venue, filterVenue) : undefined;
+  const priceFilter =
+    filterPriceMax != null ? lte(events.priceLow, filterPriceMax) : undefined;
+
   // Two passes: events with a real date in the next 90 days, plus TBD events
   // (live ingest hasn't resolved a date yet). TBD events show in their own
   // bucket at the bottom so they don't disappear from the calendar.
+  // When date filters are active, suppress the TBD bucket.
   const upcoming = await db
     .select()
     .from(events)
     .where(
       and(
         ownershipFilter,
-        gte(events.startsAt, now),
-        lte(events.startsAt, ninetyDaysOut),
+        gte(events.startsAt, fromDate ?? now),
+        lte(events.startsAt, toDate ?? ninetyDaysOut),
+        searchFilter,
+        venueFilter,
+        priceFilter,
       )!,
     )
     .orderBy(asc(events.startsAt));
 
-  const tbd = await db
-    .select()
-    .from(events)
-    .where(and(ownershipFilter, isNull(events.startsAt))!);
-
+  // TBD events are only shown when no date-range filter is active.
+  const tbd =
+    filterFrom || filterTo
+      ? []
+      : await db
+          .select()
+          .from(events)
+          .where(
+            and(
+              ownershipFilter,
+              isNull(events.startsAt),
+              searchFilter,
+              venueFilter,
+              priceFilter,
+            )!,
+          );
 
   // Same real-world gig sometimes shows up under multiple source URLs
   // (Humanitix + Under the Radar). Collapse to one card per gig.
@@ -94,6 +148,25 @@ export default async function CalendarPage({
       .groupBy(resaleListings.eventId);
     for (const r of rows) resaleCounts.set(r.eventId, Number(r.count));
   }
+
+  // Distinct venues — computed WITHOUT the venue filter so the dropdown always
+  // shows all options regardless of what's selected.
+  const venueRows = await db
+    .selectDistinct({ venue: events.venue })
+    .from(events)
+    .where(
+      and(
+        ownershipFilter,
+        gte(events.startsAt, fromDate ?? now),
+        lte(events.startsAt, toDate ?? ninetyDaysOut),
+        searchFilter,
+        priceFilter,
+      )!,
+    )
+    .orderBy(asc(events.venue));
+  const distinctVenues = venueRows
+    .map((r) => r.venue)
+    .filter((v): v is string => v != null && v.length > 0);
 
   const grouped = groupByWeek(dedupedUpcoming);
 
@@ -172,6 +245,17 @@ export default async function CalendarPage({
 
       <WelcomeCard dismissed={welcomeDismissed} />
 
+      <FilterBar
+        venues={distinctVenues}
+        current={{
+          q: filterQ,
+          venue: filterVenue,
+          from: filterFrom,
+          to: filterTo,
+          priceMax: sp.priceMax?.trim() || undefined,
+        }}
+      />
+
       {sp.reaction && (
         <div
           role="status"
@@ -201,10 +285,23 @@ export default async function CalendarPage({
           </h2>
           <div className="u-mono opacity-50">
             {String(totalEvents).padStart(2, '0')} items
+            {hasFilters && (
+              <span className="ml-2 opacity-60">(filtered)</span>
+            )}
           </div>
         </div>
 
-        {totalEvents === 0 ? (
+        {totalEvents === 0 && hasFilters ? (
+          <div className="ed-card py-16 text-center">
+            <h3 className="u-display text-2xl">No matches.</h3>
+            <p className="u-mono mt-2 opacity-60">
+              Try adjusting or clearing your filters.
+            </p>
+            <Link href="/calendar" className="ed-chip mt-6 inline-flex">
+              ↳ Clear filters
+            </Link>
+          </div>
+        ) : totalEvents === 0 ? (
           <div className="ed-card py-16 text-center">
             <h3 className="u-display text-2xl">Nothing yet.</h3>
             <p className="u-mono mt-2 opacity-60">
