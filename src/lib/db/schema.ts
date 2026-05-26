@@ -325,6 +325,31 @@ export const groupMembers = pgTable('group_members', {
 export type Group = typeof groups.$inferSelect;
 export type GroupMember = typeof groupMembers.$inferSelect;
 
+/**
+ * features-v2: intent log for clickable-shell features. One row per
+ * (actor, featureKey) — repeated taps upsert. Email + notifyOptIn are
+ * optional; the funnel measures how many shells convert into "let me know".
+ */
+export const featureInterest = pgTable('feature_interest', {
+  id: id(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  anonId: text('anon_id'),
+  featureKey: text('feature_key').notNull(),
+  email: text('email'),
+  notifyOptIn: integer('notify_opt_in').notNull().default(0),
+  meta: text('meta'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (t) => ({
+  uniqActorFeature: uniqueIndex('feature_interest_actor_feature').on(
+    t.featureKey,
+    t.userId,
+    t.anonId,
+  ),
+}));
+
+export type FeatureInterest = typeof featureInterest.$inferSelect;
+
 // ---------------------------------------------------------------------------
 
 export type User = typeof users.$inferSelect;
