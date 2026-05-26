@@ -1,13 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { LinkIcon, SparklesIcon } from 'lucide-react';
 import { createEvent } from '@/lib/events/actions';
 import { fetchEventMetadata } from '@/lib/ingest/action';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type Defaults = {
   title?: string;
@@ -18,7 +13,7 @@ type Defaults = {
   ticketUrl?: string;
 };
 
-export function EventForm() {
+export function EventForm({ signedIn }: { signedIn: boolean }) {
   const [url, setUrl] = useState('');
   const [defaults, setDefaults] = useState<Defaults>({});
   const [error, setError] = useState<string | null>(null);
@@ -45,46 +40,62 @@ export function EventForm() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <LinkIcon className="size-4" aria-hidden="true" /> Paste a ticket URL to autofill
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              type="url"
-              inputMode="url"
-              placeholder="https://humanitix.com/event/…"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              aria-label="Event URL"
-            />
-            <Button type="button" disabled={!url || pending} onClick={autofill}>
-              <SparklesIcon aria-hidden="true" /> {pending ? 'Fetching…' : 'Autofill'}
-            </Button>
-          </div>
-          {error && (
-            <p role="alert" className="text-sm text-amber-600 dark:text-amber-400">
-              {error}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <section className="ed-card p-4 sm:p-5">
+        <div className="u-mono opacity-50">[01] / Autofill from URL</div>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <input
+            type="url"
+            inputMode="url"
+            placeholder="https://humanitix.com/event/…"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            aria-label="Event URL"
+            className="flex-1 border bg-[color:var(--ed-bg)] px-3 py-3"
+            style={{
+              borderColor: 'var(--ed-line)',
+              borderRadius: 0,
+              fontFamily: 'var(--font-jbmono)',
+              fontSize: '0.875rem',
+              minHeight: '48px',
+            }}
+          />
+          <button
+            type="button"
+            disabled={!url || pending}
+            onClick={autofill}
+            className="ed-chip"
+            style={{ minHeight: '48px' }}
+          >
+            ↗ {pending ? 'Fetching…' : 'Autofill'}
+          </button>
+        </div>
+        {error && (
+          <p role="alert" className="u-mono mt-2" style={{ color: 'var(--ed-accent-2)' }}>
+            ↳ {error}
+          </p>
+        )}
+      </section>
 
       <form action={createEvent} className="space-y-4" aria-label="Event details">
-        <Field label="Title" name="title" required defaultValue={defaults.title} k={defaults.title} />
-        <Field label="Venue" name="venue" defaultValue={defaults.venue} k={defaults.venue} />
-        <Field label="City" name="city" defaultValue={defaults.city ?? 'Wellington'} k={defaults.city} />
+        <Field label="Title" name="title" required defaultValue={defaults.title} k={defaults.title} num="02" />
+        <Field label="Venue" name="venue" defaultValue={defaults.venue} k={defaults.venue} num="03" />
+        <Field label="City" name="city" defaultValue={defaults.city ?? 'Wellington'} k={defaults.city} num="04" />
         <Field
           label="Starts at"
           name="startsAt"
           type="datetime-local"
           defaultValue={defaults.startsAt}
           k={defaults.startsAt}
+          num="05"
         />
-        <Field label="Ticket URL" name="ticketUrl" type="url" defaultValue={defaults.ticketUrl} k={defaults.ticketUrl} />
+        <Field
+          label="Ticket URL"
+          name="ticketUrl"
+          type="url"
+          defaultValue={defaults.ticketUrl}
+          k={defaults.ticketUrl}
+          num="06"
+        />
         <Field
           label="Price (NZD)"
           name="priceLow"
@@ -92,10 +103,43 @@ export function EventForm() {
           inputMode="numeric"
           defaultValue={defaults.priceLow != null ? String(defaults.priceLow) : undefined}
           k={defaults.priceLow}
+          num="07"
         />
-        <Button type="submit" size="lg" className="w-full sm:w-auto">
-          Create event
-        </Button>
+
+        {!signedIn && (
+          <section className="ed-card p-4 sm:p-5">
+            <div className="u-mono opacity-50">[08] / Anon owner (optional)</div>
+            <p className="u-mono mt-2 leading-relaxed opacity-70">
+              ↳ Your event will be linked to this browser via cookie. Add a name + email so we can
+              reach out if needed.
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field
+                label="Your name"
+                name="anonOwnerName"
+                num=""
+                k="anon-name"
+                noNum
+              />
+              <Field
+                label="Email"
+                name="anonOwnerEmail"
+                type="email"
+                num=""
+                k="anon-email"
+                noNum
+              />
+            </div>
+          </section>
+        )}
+
+        <button
+          type="submit"
+          className="ed-chip w-full justify-center sm:w-auto"
+          style={{ minHeight: '52px', fontSize: '0.875rem' }}
+        >
+          Create event ↗
+        </button>
       </form>
     </div>
   );
@@ -109,6 +153,8 @@ function Field({
   required,
   defaultValue,
   k,
+  num,
+  noNum,
 }: {
   label: string;
   name: string;
@@ -117,15 +163,22 @@ function Field({
   required?: boolean;
   defaultValue?: string;
   k?: string | number;
+  num?: string;
+  noNum?: boolean;
 }) {
   const id = `field-${name}`;
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id}>
-        {label}
-        {required ? <span aria-hidden="true" className="ml-0.5 text-destructive">*</span> : null}
-      </Label>
-      <Input
+      <label htmlFor={id} className="u-mono flex items-center gap-2 opacity-70">
+        {!noNum && num && <span className="opacity-60">[{num}]</span>}
+        <span>{label}</span>
+        {required ? (
+          <span aria-hidden="true" style={{ color: 'var(--ed-accent-2)' }}>
+            *
+          </span>
+        ) : null}
+      </label>
+      <input
         id={id}
         name={name}
         type={type}
@@ -133,6 +186,14 @@ function Field({
         required={required}
         defaultValue={defaultValue}
         key={`k-${k ?? ''}`}
+        className="w-full border bg-[color:var(--ed-bg)] px-3 py-3"
+        style={{
+          borderColor: 'var(--ed-line)',
+          borderRadius: 0,
+          fontFamily: 'var(--font-jbmono)',
+          fontSize: '0.875rem',
+          minHeight: '48px',
+        }}
       />
     </div>
   );
