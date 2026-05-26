@@ -8,27 +8,40 @@ import { eventReactions, events } from '../db/schema';
 import { verifyToken } from '../tokens/token-service';
 import { getOrSetAnonId } from '../anon/identity';
 
-const reactionKindSchema = z.enum(['interested', 'down', 'cant', 'pledge_1', 'pledge_2', 'have_ticket']);
+const reactionKindSchema = z.enum([
+  'interested',
+  'down',
+  'cant',
+  'pledge_1',
+  'pledge_2',
+  'have_ticket',
+  // features-v2 slice 2: supply (extras) + demand (need_ticket) signals.
+  'extras',
+  'need_ticket',
+]);
 export type ReactionKind = z.infer<typeof reactionKindSchema>;
 
 const setBuyerInput = z.object({
   eventId: z.string().min(1),
   kind: reactionKindSchema,
+  // Only meaningful when kind === 'extras'. Capped at 6 for sanity.
+  extrasCount: z.number().int().min(1).max(6).optional(),
 });
 
 export async function setBuyerReaction(input: z.input<typeof setBuyerInput>) {
   const session = await auth();
   const parsed = setBuyerInput.parse(input);
+  const extrasCount = parsed.kind === 'extras' ? parsed.extrasCount ?? 1 : null;
 
   // Signed-in users react as themselves. Everyone else reacts anonymously via a
   // cookie UUID — no signin needed for the MVP.
   if (session?.user?.id) {
     await db
       .insert(eventReactions)
-      .values({ eventId: parsed.eventId, userId: session.user.id, kind: parsed.kind })
+      .values({ eventId: parsed.eventId, userId: session.user.id, kind: parsed.kind, extrasCount })
       .onConflictDoUpdate({
         target: [eventReactions.eventId, eventReactions.recipientId, eventReactions.userId, eventReactions.anonId],
-        set: { kind: parsed.kind, setAt: new Date() },
+        set: { kind: parsed.kind, extrasCount, setAt: new Date() },
       });
     return { ok: true };
   }
@@ -36,10 +49,10 @@ export async function setBuyerReaction(input: z.input<typeof setBuyerInput>) {
   const anonId = await getOrSetAnonId();
   await db
     .insert(eventReactions)
-    .values({ eventId: parsed.eventId, anonId, kind: parsed.kind })
+    .values({ eventId: parsed.eventId, anonId, kind: parsed.kind, extrasCount })
     .onConflictDoUpdate({
       target: [eventReactions.eventId, eventReactions.recipientId, eventReactions.userId, eventReactions.anonId],
-      set: { kind: parsed.kind, setAt: new Date() },
+      set: { kind: parsed.kind, extrasCount, setAt: new Date() },
     });
   return { ok: true };
 }
@@ -55,6 +68,8 @@ const TOKEN_ACTIONS: Record<string, ReactionKind> = {
   'react.pledge_1': 'pledge_1',
   'react.pledge_2': 'pledge_2',
   'react.have_ticket': 'have_ticket',
+  'react.extras': 'extras',
+  'react.need_ticket': 'need_ticket',
 };
 
 export async function applyReactionToken(token: string): Promise<ReactionTokenResult> {
@@ -79,6 +94,19 @@ export async function applyReactionToken(token: string): Promise<ReactionTokenRe
 
 export type ReactionTally = Record<ReactionKind, number>;
 
+// Default tally with every kind set to 0. Used to seed the per-event map so callers
+// don't need to null-check each kind.
+const ZERO_TALLY: ReactionTally = {
+  interested: 0,
+  down: 0,
+  cant: 0,
+  pledge_1: 0,
+  pledge_2: 0,
+  have_ticket: 0,
+  extras: 0,
+  need_ticket: 0,
+};
+
 export async function getReactionTallies(eventIds: string[]): Promise<Map<string, ReactionTally>> {
   if (eventIds.length === 0) return new Map();
   const rows = await db
@@ -92,7 +120,7 @@ export async function getReactionTallies(eventIds: string[]): Promise<Map<string
     .groupBy(eventReactions.eventId, eventReactions.kind);
 
   const map = new Map<string, ReactionTally>();
-  for (const e of eventIds) map.set(e, { interested: 0, down: 0, cant: 0, pledge_1: 0, pledge_2: 0, have_ticket: 0 });
+  for (const e of eventIds) map.set(e, { ...ZERO_TALLY });
   for (const r of rows) {
     const tally = map.get(r.eventId);
     if (tally) tally[r.kind as ReactionKind] = Number(r.count);
