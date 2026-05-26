@@ -56,4 +56,4 @@ Set in `.env.local` for dev, in Vercel for previews and production.
 
 ## License
 
-TBD. Likely a coop-friendly licence (Polyform Cooperative, or AGPL with a coop-aligned exception). Treat the code as all-rights-reserved until the coop is incorporated and the licence is decided.
+[AGPL-3.0](./LICENSE). Strong copyleft, coop-friendly by default. Anyone running a modified version over a network must share the source. We may add a coop-aligned additional permission under section 7 once the coop is incorporated.
