@@ -60,7 +60,7 @@ test.describe('Buttons smoke — every page, every button', () => {
   test.setTimeout(90_000);
   test.beforeEach(() => clearOutbox());
 
-  // Warm up /gigs/new once so the per-test compile cost doesn't blow the
+  // Warm up /new once so the per-test compile cost doesn't blow the
   // first test that hits it. Next.js dev mode compiles pages on first request.
   test.beforeAll(async ({ browser }) => {
     const ctx = await browser.newContext();
@@ -108,15 +108,15 @@ test.describe('Buttons smoke — every page, every button', () => {
     const page = await ctx.newPage();
     const cap = capture(page);
     await signIn(page);
-    await expect(page).toHaveURL(/\/gigs/);
+    await expect(page).toHaveURL('/');
 
     // Your-gigs link in nav.
     await page.getByRole('link', { name: 'Your gigs' }).click();
-    await expect(page).toHaveURL(/\/gigs\/mine/);
+    await expect(page).toHaveURL(/\/mine/);
 
     // Owed link in nav.
     await page.getByRole('link', { name: 'Owed', exact: true }).click();
-    await expect(page).toHaveURL(/\/gigs\/owed/);
+    await expect(page).toHaveURL(/\/owed/);
 
     assertClean(cap, 'signin + nav');
     await ctx.close();
@@ -154,7 +154,7 @@ test.describe('Buttons smoke — every page, every button', () => {
     await page.goto('/new');
     await page.locator('input[name="title"]').fill(`Detail-Smoke ${TS}`);
     await page.getByRole('button', { name: 'Create event' }).click();
-    await page.waitForURL(/\/gigs\/e\//);
+    await page.waitForURL(/\/e\//);
 
     // Share buttons row.
     const shareWa = page.getByRole('link', { name: /Share to WhatsApp/ });
@@ -221,7 +221,7 @@ test.describe('Buttons smoke — every page, every button', () => {
     await page.goto('/new');
     await page.locator('input[name="title"]').fill(`FC-Smoke ${TS}`);
     await page.getByRole('button', { name: 'Create event' }).click();
-    await page.waitForURL(/\/gigs\/e\//);
+    await page.waitForURL(/\/e\//);
     const recipEmail = `fc-${TS}@test.local`;
     await page.locator('input[name="displayName"]').fill('Smoke');
     await page.locator('input[name="email"]').fill(recipEmail);
@@ -263,7 +263,7 @@ test.describe('Buttons smoke — every page, every button', () => {
     await page.goto('/new');
     await page.locator('input[name="title"]').fill(`Respond-Smoke ${TS}`);
     await page.getByRole('button', { name: 'Create event' }).click();
-    await page.waitForURL(/\/gigs\/e\//);
+    await page.waitForURL(/\/e\//);
     const recipEmail = `respond-${TS}@test.local`;
     await page.locator('input[name="displayName"]').fill('R');
     await page.locator('input[name="email"]').fill(recipEmail);

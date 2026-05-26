@@ -71,9 +71,9 @@ test.describe('Group scenario — full friend-group rally end-to-end', () => {
     await buyer.locator('input[name="venue"]').fill('San Fran');
     await buyer.locator('input[name="priceLow"]').fill('40');
     await buyer.getByRole('button', { name: 'Create event' }).click();
-    await buyer.waitForURL(/\/gigs\/e\//);
+    await buyer.waitForURL(/\/e\//);
     const eventSlug = new URL(buyer.url()).pathname.split('/').pop()!;
-    console.log(`event: /gigs/e/${eventSlug}`);
+    console.log(`event: /e/${eventSlug}`);
 
     // === 2. Add 4 recipients ===
     const cast = [
