@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { auth, signOut } from '@/lib/auth/auth';
 import { ensureMigrated } from '@/lib/db/client';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme-toggle';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -57,6 +58,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       ].join(' ')}
       style={{ fontFamily: 'var(--font-archivo), ui-sans-serif, system-ui, sans-serif' }}
     >
+      <head>
+        {/* Anti-FOUC: apply dark/light class before React hydrates so the
+            editorial palette never flashes the wrong background colour.
+            Reads localStorage.gigs_theme; falls back to OS preference.
+            Defensive against localStorage being unavailable (private modes). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('gigs_theme');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(t==='dark'||(t==='system'&&d)||(!t&&d)){document.documentElement.classList.add('dark');}else{document.documentElement.classList.add('light');}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full">
         <div className="flex min-h-screen flex-col">
           <header
@@ -86,6 +98,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <span aria-hidden>↳ </span>Owed
                   </Link>
                 )}
+                <ThemeToggle />
                 {session?.user ? (
                   <>
                     <span
