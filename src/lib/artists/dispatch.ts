@@ -68,7 +68,7 @@ export async function dispatchArtistNotifications(
       await ensureArtistLink(eventRow.id, artist.id);
 
       const dateLabel = formatDate(skEvent.startDate);
-      const url = `${APP_URL}/gigs/e/${eventRow.slug}`;
+      const url = `${APP_URL}/e/${eventRow.slug}`;
       const subject = `${artist.name} is playing in NZ: ${skEvent.title}`;
       const text = [
         'Hey,',

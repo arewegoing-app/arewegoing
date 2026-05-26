@@ -20,7 +20,7 @@ function feedbackLink(recipientId: string, eventId: string, rating: number): str
     act: 'feedback.submit',
     ttlSec: FEEDBACK_TTL_SEC,
   });
-  return `${BASE_URL}/gigs/r?t=${token}&rating=${rating}`;
+  return `${BASE_URL}/r?t=${token}&rating=${rating}`;
 }
 
 export type FeedbackDispatchResult = { sent: number; skipped: number };

@@ -37,7 +37,7 @@ export default async function GroupsPage() {
           {myGroups.map((g) => (
             <li key={g.id}>
               <Link
-                href={`/gigs/groups/${g.slug}`}
+                href={`/groups/${g.slug}`}
                 className="flex items-center justify-between rounded-md border bg-card px-4 py-3 text-sm hover:bg-accent"
               >
                 <span className="font-medium">{g.name}</span>

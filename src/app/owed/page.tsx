@@ -160,7 +160,7 @@ export default async function OwedSummaryPage() {
                           <ul className="space-y-0.5">
                             {r.unpaidEvents.slice(0, 3).map((e) => (
                               <li key={e.slug}>
-                                <Link href={`/gigs/e/${e.slug}`} className="hover:underline">
+                                <Link href={`/e/${e.slug}`} className="hover:underline">
                                   {e.title}
                                 </Link>{' '}
                                 ({e.days}d)

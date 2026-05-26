@@ -104,7 +104,7 @@ export async function requestBail(raw: z.input<typeof requestInput>): Promise<Ba
 
   let offered = 0;
   for (const c of offerees) {
-    const claimLink = `${APP_URL}/gigs/r?t=${signToken({
+    const claimLink = `${APP_URL}/r?t=${signToken({
       rid: c.recipient.id,
       eid: row.event.id,
       act: 'bail.claim',

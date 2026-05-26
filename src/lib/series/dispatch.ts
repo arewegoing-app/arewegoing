@@ -39,7 +39,7 @@ export async function dispatchSeriesNotifications(): Promise<{ sent: number }> {
             minute: '2-digit',
           })
         : 'TBD';
-      const url = `${APP_URL}/gigs/e/${ev.slug}`;
+      const url = `${APP_URL}/e/${ev.slug}`;
       const subject = `New ${sub.seriesName} event: ${ev.title}`;
       const text = [
         'Hey,',

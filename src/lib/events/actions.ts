@@ -54,7 +54,7 @@ export async function createEvent(formData: FormData) {
     ticketUrl: parsed.ticketUrl || null,
     priceLow: parsed.priceLow ?? null,
   }).returning();
-  redirect(`/gigs/e/${event.slug}`);
+  redirect(`/e/${event.slug}`);
 }
 
 const addRecipientInput = z.object({
@@ -113,11 +113,11 @@ export async function sendInvites(input: { eventId: string; recipientIds: string
   for (const r of recips) {
     await db.insert(eventInvites).values({ eventId: event.id, recipientId: r.id }).onConflictDoNothing();
     const links = {
-      in: `${APP_URL}/gigs/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.in', ttlSec: INVITE_TTL_SEC })}`,
-      maybe: `${APP_URL}/gigs/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.maybe', ttlSec: INVITE_TTL_SEC })}`,
-      out: `${APP_URL}/gigs/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.out', ttlSec: INVITE_TTL_SEC })}`,
-      view: `${APP_URL}/gigs/e/${event.slug}?t=${signToken({ rid: r.id, eid: event.id, act: 'view', ttlSec: INVITE_TTL_SEC })}`,
-      respond: `${APP_URL}/gigs/e/${event.slug}/respond?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.respond', ttlSec: INVITE_TTL_SEC })}`,
+      in: `${APP_URL}/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.in', ttlSec: INVITE_TTL_SEC })}`,
+      maybe: `${APP_URL}/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.maybe', ttlSec: INVITE_TTL_SEC })}`,
+      out: `${APP_URL}/r?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.out', ttlSec: INVITE_TTL_SEC })}`,
+      view: `${APP_URL}/e/${event.slug}?t=${signToken({ rid: r.id, eid: event.id, act: 'view', ttlSec: INVITE_TTL_SEC })}`,
+      respond: `${APP_URL}/e/${event.slug}/respond?t=${signToken({ rid: r.id, eid: event.id, act: 'rsvp.respond', ttlSec: INVITE_TTL_SEC })}`,
     };
     const tmpl = inviteEmail({
       buyer: buyerRow,

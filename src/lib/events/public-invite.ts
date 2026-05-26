@@ -52,7 +52,7 @@ const APP_URL = process.env.GIGS_APP_URL ?? 'http://localhost:3000';
 const TTL_SEC = 60 * 60 * 24 * 30;
 
 /**
- * Public join handler. Called from the /gigs/e/[slug]/join page after the
+ * Public join handler. Called from the /e/[slug]/join page after the
  * visitor enters name + email. Creates (or reuses) a recipient + invite scoped
  * to the event owner, then returns a personal respond-link the visitor can
  * bookmark.
@@ -108,5 +108,5 @@ export async function joinViaPublicInvite(raw: z.input<typeof joinInput>): Promi
   }
 
   const respondToken = signToken({ rid: recipient.id, eid: event.id, act: 'rsvp.respond', ttlSec: TTL_SEC });
-  return { ok: true, respondUrl: `${APP_URL}/gigs/e/${event.slug}/respond?t=${respondToken}` };
+  return { ok: true, respondUrl: `${APP_URL}/e/${event.slug}/respond?t=${respondToken}` };
 }
