@@ -57,6 +57,16 @@ do $$ begin
   alter type reaction_kind add value if not exists 'have_ticket';
 exception when others then null; end $$;
 
+-- features-v2 slice 2: supply (extras) + demand (need_ticket) signals,
+-- separate from the cash-fronting pledge_* kinds.
+do $$ begin
+  alter type reaction_kind add value if not exists 'extras';
+exception when others then null; end $$;
+
+do $$ begin
+  alter type reaction_kind add value if not exists 'need_ticket';
+exception when others then null; end $$;
+
 create table if not exists event_reactions (
   id text primary key,
   event_id text not null references events(id) on delete cascade,
@@ -67,6 +77,11 @@ create table if not exists event_reactions (
   kind reaction_kind not null,
   set_at timestamp not null default now()
 );
+
+-- features-v2 slice 2: extras_count column (nullable; only set when kind='extras').
+do $$ begin
+  alter table event_reactions add column if not exists extras_count integer;
+exception when others then null; end $$;
 create unique index if not exists event_reactions_event_actor on event_reactions(event_id, recipient_id, user_id, anon_id);
 do $$ begin
   alter table events add column if not exists public_invite_token text;

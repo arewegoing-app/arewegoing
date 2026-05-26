@@ -336,6 +336,28 @@ export default async function CalendarPage({
   );
 }
 
+type Tally = {
+  interested: number;
+  down: number;
+  cant: number;
+  pledge_1: number;
+  pledge_2: number;
+  have_ticket: number;
+  extras: number;
+  need_ticket: number;
+};
+
+const ZERO_TALLY: Tally = {
+  interested: 0,
+  down: 0,
+  cant: 0,
+  pledge_1: 0,
+  pledge_2: 0,
+  have_ticket: 0,
+  extras: 0,
+  need_ticket: 0,
+};
+
 function EventCard({
   event,
   tally,
@@ -344,14 +366,12 @@ function EventCard({
   indexLabel,
 }: {
   event: EventRow;
-  tally:
-    | { interested: number; down: number; cant: number; pledge_1: number; pledge_2: number; have_ticket: number }
-    | undefined;
+  tally: Tally | undefined;
   resaleCount: number;
   isFollowingSeries: boolean;
   indexLabel: string;
 }) {
-  const t = tally ?? { interested: 0, down: 0, cant: 0, pledge_1: 0, pledge_2: 0, have_ticket: 0 };
+  const t = tally ?? ZERO_TALLY;
   const downCount = t.down + t.pledge_1 + t.pledge_2 + t.have_ticket;
   const unclaimed = !event.ownerUserId && !event.anonOwnerId;
   const readyToRally = downCount >= 3 && unclaimed;
@@ -491,16 +511,14 @@ function EventCard({
   );
 }
 
-function ReactionTally({
-  tally,
-}: {
-  tally: { interested: number; down: number; cant: number; pledge_1: number; pledge_2: number; have_ticket: number };
-}) {
+function ReactionTally({ tally }: { tally: Tally }) {
   const items: Array<{ icon: typeof EyeIcon; value: number; label: string; accent?: boolean }> = [
     { icon: EyeIcon, value: tally.interested, label: 'interested' },
     { icon: CheckCircle2Icon, value: tally.down, label: 'down', accent: true },
     { icon: TicketIcon, value: tally.pledge_1 + tally.pledge_2, label: 'pledging' },
     { icon: TicketCheckIcon, value: tally.have_ticket, label: 'have ticket' },
+    { icon: TicketCheckIcon, value: tally.extras, label: 'extras', accent: true },
+    { icon: TicketCheckIcon, value: tally.need_ticket, label: 'need one', accent: true },
     { icon: XCircleIcon, value: tally.cant, label: "can't" },
   ];
   const visible = items.filter((i) => i.value > 0);

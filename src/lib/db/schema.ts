@@ -49,7 +49,17 @@ export const events = pgTable('events', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const reactionKindEnum = pgEnum('reaction_kind', ['interested', 'down', 'cant', 'pledge_1', 'pledge_2', 'have_ticket']);
+export const reactionKindEnum = pgEnum('reaction_kind', [
+  'interested',
+  'down',
+  'cant',
+  'pledge_1',
+  'pledge_2',
+  'have_ticket',
+  // features-v2: supply (extras) + demand (need_ticket) signals separate from pledge.
+  'extras',
+  'need_ticket',
+]);
 
 export const eventReactions = pgTable('event_reactions', {
   id: id(),
@@ -59,6 +69,9 @@ export const eventReactions = pgTable('event_reactions', {
   anonId: text('anon_id'),
   anonName: text('anon_name'),
   kind: reactionKindEnum('kind').notNull(),
+  // Only meaningful when kind === 'extras'; null otherwise. Defaults to 1 if the user
+  // doesn't pick a count.
+  extrasCount: integer('extras_count'),
   setAt: timestamp('set_at').notNull().defaultNow(),
 }, (t) => ({
   uniqEventActor: uniqueIndex('event_reactions_event_actor').on(t.eventId, t.recipientId, t.userId, t.anonId),
