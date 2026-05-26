@@ -19,6 +19,11 @@ const inputStyle = {
   background: 'var(--ed-bg)',
   color: 'var(--ed-fg)',
   minHeight: '44px',
+  // Force inputs (including native date pickers) to respect the grid cell width.
+  // Without min-width:0 they use intrinsic content size and overflow on small screens.
+  minWidth: 0,
+  maxWidth: '100%',
+  boxSizing: 'border-box',
 } as const;
 
 export function FilterBar({ venues, current }: FilterBarProps) {
@@ -43,7 +48,7 @@ export function FilterBar({ venues, current }: FilterBarProps) {
         className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
       >
         {/* [01] Free-text search */}
-        <div className="space-y-1.5 lg:col-span-2">
+        <div className="min-w-0 space-y-1.5 sm:col-span-2 lg:col-span-2">
           <label
             htmlFor="filter-q"
             className="u-mono flex items-center gap-2 opacity-70"
@@ -64,7 +69,7 @@ export function FilterBar({ venues, current }: FilterBarProps) {
         </div>
 
         {/* [02] Venue */}
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <label
             htmlFor="filter-venue"
             className="u-mono flex items-center gap-2 opacity-70"
@@ -90,7 +95,7 @@ export function FilterBar({ venues, current }: FilterBarProps) {
         </div>
 
         {/* [03] From date */}
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <label
             htmlFor="filter-from"
             className="u-mono flex items-center gap-2 opacity-70"
@@ -110,7 +115,7 @@ export function FilterBar({ venues, current }: FilterBarProps) {
         </div>
 
         {/* [04] To date */}
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <label
             htmlFor="filter-to"
             className="u-mono flex items-center gap-2 opacity-70"
@@ -130,7 +135,7 @@ export function FilterBar({ venues, current }: FilterBarProps) {
         </div>
 
         {/* [05] Max price */}
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <label
             htmlFor="filter-price"
             className="u-mono flex items-center gap-2 opacity-70"
