@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { XIcon, CheckCircle2Icon, MegaphoneIcon, TicketIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { XIcon } from 'lucide-react';
 
 const COOKIE_NAME = 'gigs_welcome_dismissed';
 
@@ -17,47 +15,45 @@ export function WelcomeCard({ dismissed }: { dismissed: boolean }) {
   };
 
   return (
-    <Card className="border-emerald-300 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/40">
-      <CardContent className="space-y-3 py-4">
-        <div className="flex items-start justify-between gap-2">
-          <h2 className="text-base font-semibold text-emerald-900 dark:text-emerald-200">
-            What&apos;s this?
-          </h2>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="ghost"
-            onClick={dismiss}
-            aria-label="Dismiss welcome card"
-            className="text-emerald-900 hover:bg-emerald-100 dark:text-emerald-200 dark:hover:bg-emerald-900/50"
-          >
-            <XIcon aria-hidden="true" />
-          </Button>
+    <aside
+      className="ed-card relative"
+      aria-label="How it works"
+      style={{ background: 'var(--ed-bg)' }}
+    >
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Dismiss"
+        className="absolute right-2 top-2 ed-chip"
+        style={{ minHeight: '36px', padding: '0.25rem 0.5rem' }}
+      >
+        <XIcon aria-hidden="true" className="size-4" />
+      </button>
+
+      <div className="grid grid-cols-1 gap-px sm:grid-cols-3" style={{ background: 'var(--ed-line)' }}>
+        <div className="p-4 sm:p-5" style={{ background: 'var(--ed-bg)' }}>
+          <div className="u-mono opacity-50">[A] / Step 01</div>
+          <div className="u-display mt-2 text-2xl">React</div>
+          <p className="u-mono mt-2 leading-relaxed opacity-70">
+            Tap <em className="u-accent-bg not-italic">I&apos;m down</em> on any event. No signin.
+          </p>
         </div>
-        <p className="text-sm text-emerald-900/90 dark:text-emerald-100/80">
-          A shared calendar for Wellington gigs. No signin. Tap a reaction on any event:
-        </p>
-        <ul className="space-y-2 text-sm leading-snug text-emerald-900/90 dark:text-emerald-100/80">
-          <li className="flex items-start gap-2">
-            <CheckCircle2Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>
-              <strong>I&apos;m down</strong> signals you&apos;re keen
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <TicketIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>
-              <strong>Pledge 1 or 2 tickets</strong> if you&apos;d commit to buying
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <MegaphoneIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>
-              Once 3+ are down, anyone can <strong>Rally this</strong>, claim the gig, invite friends by email, run the buy.
-            </span>
-          </li>
-        </ul>
-      </CardContent>
-    </Card>
+        <div className="p-4 sm:p-5" style={{ background: 'var(--ed-bg)' }}>
+          <div className="u-mono opacity-50">[B] / Step 02</div>
+          <div className="u-display mt-2 text-2xl">Pledge</div>
+          <p className="u-mono mt-2 leading-relaxed opacity-70">
+            Say <em className="u-accent-bg not-italic">I&apos;ll buy 1</em> or{' '}
+            <em className="u-accent-bg not-italic">2</em> if you&apos;d front tickets.
+          </p>
+        </div>
+        <div className="p-4 sm:p-5" style={{ background: 'var(--ed-bg)' }}>
+          <div className="u-mono opacity-50">[C] / Step 03</div>
+          <div className="u-display mt-2 text-2xl">Rally</div>
+          <p className="u-mono mt-2 leading-relaxed opacity-70">
+            Once 3+ are down, anyone can claim, invite, and run the group buy.
+          </p>
+        </div>
+      </div>
+    </aside>
   );
 }

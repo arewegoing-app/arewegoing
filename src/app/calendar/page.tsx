@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { and, asc, gte, lte, or, isNull, eq, sql } from 'drizzle-orm';
-import { CheckCircle2Icon, EyeIcon, PlusIcon, TicketIcon, TicketCheckIcon, XCircleIcon } from 'lucide-react';
+import { CheckCircle2Icon, EyeIcon, TicketIcon, TicketCheckIcon, XCircleIcon } from 'lucide-react';
 import { auth } from '@/lib/auth/auth';
 import { db, ensureMigrated } from '@/lib/db/client';
 import { events, resaleListings, seriesSubscriptions } from '@/lib/db/schema';
@@ -12,11 +12,6 @@ import { ClaimForm } from './claim-form';
 import { WelcomeCard } from './welcome-card';
 import { SeriesFollowButton } from './series-follow';
 import { cookies } from 'next/headers';
-import { Badge } from '@/components/ui/badge';
-import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,120 +96,241 @@ export default async function CalendarPage({
 
   const grouped = groupByWeek(dedupedUpcoming);
 
+  const totalEvents = dedupedUpcoming.length + dedupedTbd.length;
+  const eventNumPadding = String(totalEvents).length;
+
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Next 90 days</h1>
-          <p className="text-sm text-muted-foreground">
-            Wellington gigs pulled from Humanitix, Moshtix, and Under the Radar.
-          </p>
+    <div className="space-y-8 sm:space-y-12">
+      {/* Hero — Form Follows Friction style, but built around the gig calendar. */}
+      <section className="pt-4 pb-2">
+        <div className="grid grid-cols-2 gap-4 pb-4 sm:gap-6">
+          <div className="u-mono leading-relaxed" style={{ color: 'var(--ed-fg-soft)' }}>
+            <span className="block opacity-50">[01]</span>
+            <strong className="block font-medium">Wellington · NZ</strong>
+            <span className="block">Live ingest from UTR · Humanitix · Moshtix</span>
+          </div>
+          <div className="u-mono leading-relaxed" style={{ color: 'var(--ed-fg-soft)' }}>
+            <span className="block opacity-50">[02]</span>
+            <strong className="block font-medium">Next 90 days</strong>
+            <span className="block">{totalEvents.toString().padStart(2, '0')} events tracked</span>
+          </div>
         </div>
-        {signedIn && (
-          <Link href="/new" className={cn(buttonVariants())}>
-            <PlusIcon aria-hidden="true" /> New event
-          </Link>
-        )}
-      </header>
+
+        <h1
+          className="u-display"
+          style={{ fontSize: 'clamp(3rem, 14vw, 9rem)', lineHeight: 0.85 }}
+        >
+          Are<sup className="u-mono align-top" style={{ fontSize: '0.18em', marginLeft: '0.2em' }}>
+            (01)
+          </sup>
+          <br />
+          we{' '}
+          <em className="not-italic u-accent-bg">going</em>
+          <span style={{ color: 'var(--ed-accent-2)' }}>?</span>
+        </h1>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-6 sm:grid-cols-[2fr_1fr] sm:items-end sm:gap-6">
+          <p className="max-w-prose text-base leading-snug sm:text-lg">
+            A shared calendar for Wellington gigs. No signin to react. Tap{' '}
+            <em className="not-italic u-accent-bg">I&apos;m down</em> and once three of you
+            agree, anyone can claim the gig and run the group buy.
+          </p>
+          {signedIn ? (
+            <Link href="/new" className="ed-chip justify-self-start sm:justify-self-end">
+              + New event <span aria-hidden>↗</span>
+            </Link>
+          ) : (
+            <Link href="/signin" className="ed-chip justify-self-start sm:justify-self-end">
+              Sign in <span aria-hidden>↗</span>
+            </Link>
+          )}
+        </div>
+      </section>
+
+      {/* Looped marquee — visual break + restates the value prop. */}
+      <div className="ed-marquee -mx-4 sm:-mx-6" aria-hidden="true">
+        <div className="ed-marquee__track">
+          <span>Live Music Wellington</span>
+          <span className="dot">●</span>
+          <span>Group Buying</span>
+          <span className="dot">●</span>
+          <span>No Bail Risk</span>
+          <span className="dot">●</span>
+          <span>3 Friends = Rally</span>
+          <span className="dot">●</span>
+          <span>Live Music Wellington</span>
+          <span className="dot">●</span>
+          <span>Group Buying</span>
+          <span className="dot">●</span>
+          <span>No Bail Risk</span>
+          <span className="dot">●</span>
+          <span>3 Friends = Rally</span>
+          <span className="dot">●</span>
+        </div>
+      </div>
 
       <WelcomeCard dismissed={welcomeDismissed} />
 
       {sp.reaction && (
         <div
           role="status"
-          className="rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200"
+          className="border px-4 py-2"
+          style={{
+            background: 'var(--ed-accent)',
+            color: 'var(--ed-fg)',
+            borderColor: 'var(--ed-line)',
+          }}
         >
-          Reaction recorded: <strong>{sp.reaction}</strong>
+          <span className="u-mono opacity-60">↳ Recorded</span>{' '}
+          <strong>{sp.reaction}</strong>
           {sp.event ? ` on ${sp.event}` : ''}
         </div>
       )}
 
-      {dedupedUpcoming.length === 0 && dedupedTbd.length === 0 && (
-        <Card>
-          <CardContent className="mx-auto max-w-md py-12 text-center">
-            <h2 className="text-base font-medium">No gigs in the next 90 days</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              The ingest job hasn&apos;t pulled anything fresh yet. Check back in a few hours, or
-              add one yourself.
+      {/* Section head — `[03] / Index · TITLE · NN ITEMS` */}
+      <section aria-label="Index">
+        <div className="ed-section-head">
+          <div className="u-mono opacity-50">[03] / Index</div>
+          <h2
+            className="u-display"
+            style={{ fontSize: 'clamp(1.5rem, 5vw, 3rem)', margin: 0 }}
+          >
+            Selected gigs{' '}
+            <span style={{ color: 'var(--ed-fg-soft)' }}>2026</span>
+          </h2>
+          <div className="u-mono opacity-50">
+            {String(totalEvents).padStart(2, '0')} items
+          </div>
+        </div>
+
+        {totalEvents === 0 ? (
+          <div className="ed-card py-16 text-center">
+            <h3 className="u-display text-2xl">Nothing yet.</h3>
+            <p className="u-mono mt-2 opacity-60">
+              Ingest hasn&apos;t pulled anything fresh.
             </p>
             {signedIn && (
-              <Link href="/new" className={cn(buttonVariants(), 'mt-4')}>
-                <PlusIcon aria-hidden="true" /> Create an event
+              <Link href="/new" className="ed-chip mt-6 inline-flex">
+                + Add an event
               </Link>
             )}
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        ) : (
+          <div className="mt-4 space-y-10">
+            {grouped.map(({ weekStart, items }, gi) => (
+              <section
+                key={weekStart.toISOString()}
+                aria-label={`Week of ${weekStart.toDateString()}`}
+              >
+                <div className="mb-3 flex items-baseline justify-between border-b border-[color:var(--ed-line)] pb-1">
+                  <h3 className="u-mono opacity-60">
+                    ↳ Week of{' '}
+                    {weekStart.toLocaleDateString('en-NZ', {
+                      day: 'numeric',
+                      month: 'short',
+                      timeZone: 'Pacific/Auckland',
+                    })}
+                  </h3>
+                  <span className="u-mono opacity-40">
+                    {String(items.length).padStart(2, '0')}
+                  </span>
+                </div>
+                <ul className="grid grid-cols-1 gap-px bg-[color:var(--ed-line)] border border-[color:var(--ed-line)] sm:grid-cols-2">
+                  {items.map((e, i) => (
+                    <EventCard
+                      key={e.id}
+                      event={e}
+                      tally={tallies.get(e.id)}
+                      resaleCount={resaleCounts.get(e.id) ?? 0}
+                      isFollowingSeries={e.seriesName ? followedSeries.has(e.seriesName) : false}
+                      indexLabel={String(gi * 100 + i + 1).padStart(eventNumPadding, '0')}
+                    />
+                  ))}
+                </ul>
+              </section>
+            ))}
 
-      <div className="space-y-8">
-        {grouped.map(({ weekStart, items }) => (
-          <section key={weekStart.toISOString()} aria-label={`Week of ${weekStart.toDateString()}`}>
-            <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-              Week of{' '}
-              {weekStart.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', timeZone: 'Pacific/Auckland' })}
-            </h2>
-            <ul className="space-y-3">
-              {items.map((e) => (
-                <EventCard
-                  key={e.id}
-                  event={e}
-                  tally={tallies.get(e.id)}
-                  resaleCount={resaleCounts.get(e.id) ?? 0}
-                  isFollowingSeries={e.seriesName ? followedSeries.has(e.seriesName) : false}
-                />
-              ))}
-            </ul>
-          </section>
-        ))}
-
-        {dedupedTbd.length > 0 && (
-          <section aria-label="Events with no fixed date yet">
-            <h2 className="mb-3 text-sm font-medium text-muted-foreground">Date TBD</h2>
-            <ul className="space-y-3">
-              {dedupedTbd.map((e) => (
-                <EventCard
-                  key={e.id}
-                  event={e}
-                  tally={tallies.get(e.id)}
-                  resaleCount={resaleCounts.get(e.id) ?? 0}
-                  isFollowingSeries={e.seriesName ? followedSeries.has(e.seriesName) : false}
-                />
-              ))}
-            </ul>
-          </section>
+            {dedupedTbd.length > 0 && (
+              <section aria-label="Events with no fixed date yet">
+                <div className="mb-3 flex items-baseline justify-between border-b border-[color:var(--ed-line)] pb-1">
+                  <h3 className="u-mono opacity-60">↳ Date TBD</h3>
+                  <span className="u-mono opacity-40">
+                    {String(dedupedTbd.length).padStart(2, '0')}
+                  </span>
+                </div>
+                <ul className="grid grid-cols-1 gap-px bg-[color:var(--ed-line)] border border-[color:var(--ed-line)] sm:grid-cols-2">
+                  {dedupedTbd.map((e, i) => (
+                    <EventCard
+                      key={e.id}
+                      event={e}
+                      tally={tallies.get(e.id)}
+                      resaleCount={resaleCounts.get(e.id) ?? 0}
+                      isFollowingSeries={e.seriesName ? followedSeries.has(e.seriesName) : false}
+                      indexLabel={`T·${String(i + 1).padStart(2, '0')}`}
+                    />
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
         )}
-      </div>
+      </section>
 
-      <footer className="border-t pt-4 text-xs text-muted-foreground">
-        Listings pulled from{' '}
-        <a
-          href="https://www.undertheradar.co.nz/whatson/wellington"
-          target="_blank"
-          rel="noreferrer"
-          className="text-foreground hover:underline"
-        >
-          Under the Radar
-        </a>
-        ,{' '}
-        <a
-          href="https://events.humanitix.com"
-          target="_blank"
-          rel="noreferrer"
-          className="text-foreground hover:underline"
-        >
-          Humanitix
-        </a>
-        , and{' '}
-        <a
-          href="https://www.moshtix.co.nz"
-          target="_blank"
-          rel="noreferrer"
-          className="text-foreground hover:underline"
-        >
-          Moshtix
-        </a>
-        . Tap an unclaimed gig&apos;s title to view tickets. Spotted a wrong date? Open the event
-        and hit &quot;Refresh from source&quot;.
+      {/* Footer ledger */}
+      <footer className="border-t border-[color:var(--ed-line)] pt-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <div className="u-mono opacity-50">↳ Sources</div>
+            <ul className="u-mono mt-1 space-y-1">
+              <li>
+                <a
+                  href="https://www.undertheradar.co.nz/whatson/wellington"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-[color:var(--ed-accent-2)]"
+                >
+                  ↳ Under the Radar
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://events.humanitix.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-[color:var(--ed-accent-2)]"
+                >
+                  ↳ Humanitix
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.moshtix.co.nz"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-[color:var(--ed-accent-2)]"
+                >
+                  ↳ Moshtix
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <div className="u-mono opacity-50">↳ Colophon</div>
+            <ul className="u-mono mt-1 space-y-1">
+              <li>Archivo + JetBrains Mono</li>
+              <li>OKLCH color space</li>
+              <li>Hand-rolled Next.js 16</li>
+              <li>No tracking</li>
+            </ul>
+          </div>
+          <div>
+            <div className="u-mono opacity-50">↳ Tip</div>
+            <p className="u-mono mt-1 opacity-70 leading-relaxed">
+              Tap an unclaimed gig&apos;s title to view tickets. Spotted a wrong date? Open the
+              event and hit &quot;Refresh from source&quot;.
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
   );
@@ -225,6 +341,7 @@ function EventCard({
   tally,
   resaleCount,
   isFollowingSeries,
+  indexLabel,
 }: {
   event: EventRow;
   tally:
@@ -232,88 +349,144 @@ function EventCard({
     | undefined;
   resaleCount: number;
   isFollowingSeries: boolean;
+  indexLabel: string;
 }) {
   const t = tally ?? { interested: 0, down: 0, cant: 0, pledge_1: 0, pledge_2: 0, have_ticket: 0 };
   const downCount = t.down + t.pledge_1 + t.pledge_2 + t.have_ticket;
   const unclaimed = !event.ownerUserId && !event.anonOwnerId;
   const readyToRally = downCount >= 3 && unclaimed;
+
+  const dateStr = event.startsAt
+    ? new Date(event.startsAt).toLocaleString('en-NZ', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: 'Pacific/Auckland',
+      })
+    : 'TBD';
+
   return (
-    <li>
-      <Card>
-        <CardHeader className="space-y-1.5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <h3 className="text-base font-medium leading-tight">
-                {!unclaimed ? (
-                  <Link href={`/e/${event.slug}`} className="hover:underline">
-                    {event.title}
-                  </Link>
-                ) : event.ticketUrl ? (
-                  <a
-                    href={event.ticketUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:underline"
-                    aria-label={`${event.title} — view tickets (opens in new tab)`}
-                  >
-                    {event.title}
-                  </a>
-                ) : (
-                  event.title
-                )}
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {event.venue ?? '—'}
-                {event.startsAt
-                  ? ' · ' +
-                    new Date(event.startsAt).toLocaleString('en-NZ', {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      timeZone: 'Pacific/Auckland',
-                    })
-                  : ' · TBD'}
-                {event.priceLow ? ` · from $${event.priceLow}` : ''}
-              </p>
-              <div className="mt-1 flex flex-wrap items-center gap-1">
-                {event.seriesName && (
-                  <>
-                    <Badge variant="secondary">{event.seriesName}</Badge>
-                    <SeriesFollowButton seriesName={event.seriesName} initialSubscribed={isFollowingSeries} />
-                  </>
-                )}
-                {resaleCount > 0 && (
-                  <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-                    🎟️ {resaleCount} resale {resaleCount === 1 ? 'ticket' : 'tickets'}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <ReactionTally tally={t} />
-          </div>
-          {event.ticketUrl && (
+    <li
+      className="ed-card flex flex-col"
+      style={{ border: '0' }}
+    >
+      <div className="flex flex-col gap-3 p-4 sm:p-5">
+        {/* Meta row — numbered index, date, price band */}
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="ed-card__num">FIG·{indexLabel}</span>
+          <span className="u-mono" style={{ color: 'var(--ed-fg-soft)' }}>
+            {dateStr}
+            {event.priceLow ? ` · $${event.priceLow}` : ''}
+          </span>
+        </div>
+
+        {/* Title */}
+        <h3
+          className="u-display"
+          style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)', margin: 0 }}
+        >
+          {!unclaimed ? (
+            <Link
+              href={`/e/${event.slug}`}
+              className="hover:underline"
+              style={{ textDecorationThickness: '2px' }}
+            >
+              {event.title}
+            </Link>
+          ) : event.ticketUrl ? (
             <a
               href={event.ticketUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground"
+              className="hover:underline"
+              style={{ textDecorationThickness: '2px' }}
+              aria-label={`${event.title} — view tickets (opens in new tab)`}
             >
-              {shortUrl(event.ticketUrl)} ↗
+              {event.title}
             </a>
+          ) : (
+            event.title
           )}
-        </CardHeader>
-        <Separator />
-        <CardContent className="pt-3">
-          <CalendarReactions eventId={event.id} />
-        </CardContent>
-        {readyToRally && (
-          <CardFooter>
-            <ClaimForm eventId={event.id} eventTitle={event.title} />
-          </CardFooter>
+        </h3>
+
+        {/* Venue */}
+        <div className="u-mono leading-snug" style={{ color: 'var(--ed-fg-soft)' }}>
+          <span aria-hidden>▪ </span>
+          {event.venue ?? 'Venue TBA'}
+        </div>
+
+        {/* Badges row */}
+        {(event.seriesName || resaleCount > 0) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {event.seriesName && (
+              <>
+                <span
+                  className="u-mono"
+                  style={{
+                    background: 'var(--ed-fg)',
+                    color: 'var(--ed-bg)',
+                    padding: '0.25rem 0.5rem',
+                  }}
+                >
+                  {event.seriesName}
+                </span>
+                <SeriesFollowButton
+                  seriesName={event.seriesName}
+                  initialSubscribed={isFollowingSeries}
+                />
+              </>
+            )}
+            {resaleCount > 0 && (
+              <span
+                className="u-mono"
+                style={{
+                  background: 'var(--ed-accent)',
+                  color: 'var(--ed-fg)',
+                  padding: '0.25rem 0.5rem',
+                  border: '1px solid var(--ed-line)',
+                }}
+              >
+                ▸ {resaleCount} resale {resaleCount === 1 ? 'ticket' : 'tickets'}
+              </span>
+            )}
+          </div>
         )}
-      </Card>
+
+        {/* Live tally — only shown when non-empty */}
+        <ReactionTally tally={t} />
+
+        {/* Ticket source link */}
+        {event.ticketUrl && (
+          <a
+            href={event.ticketUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="u-mono inline-flex items-center gap-1 self-start hover:text-[color:var(--ed-accent-2)]"
+            style={{ color: 'var(--ed-fg-soft)' }}
+          >
+            ↳ {shortUrl(event.ticketUrl)} <span aria-hidden>↗</span>
+          </a>
+        )}
+      </div>
+
+      {/* Reaction row — separator-as-border, full bleed */}
+      <div className="border-t border-[color:var(--ed-line)] p-4 sm:p-5">
+        <CalendarReactions eventId={event.id} />
+      </div>
+
+      {/* Rally CTA — only when 3+ are down and unclaimed */}
+      {readyToRally && (
+        <div className="border-t border-[color:var(--ed-line)] p-4 sm:p-5"
+          style={{ background: 'var(--ed-accent)' }}
+        >
+          <div className="u-mono mb-2">
+            ↳ {downCount} friends down — rally now
+          </div>
+          <ClaimForm eventId={event.id} eventTitle={event.title} />
+        </div>
+      )}
     </li>
   );
 }
@@ -323,9 +496,9 @@ function ReactionTally({
 }: {
   tally: { interested: number; down: number; cant: number; pledge_1: number; pledge_2: number; have_ticket: number };
 }) {
-  const items: Array<{ icon: typeof EyeIcon; value: number; label: string }> = [
+  const items: Array<{ icon: typeof EyeIcon; value: number; label: string; accent?: boolean }> = [
     { icon: EyeIcon, value: tally.interested, label: 'interested' },
-    { icon: CheckCircle2Icon, value: tally.down, label: 'down' },
+    { icon: CheckCircle2Icon, value: tally.down, label: 'down', accent: true },
     { icon: TicketIcon, value: tally.pledge_1 + tally.pledge_2, label: 'pledging' },
     { icon: TicketCheckIcon, value: tally.have_ticket, label: 'have ticket' },
     { icon: XCircleIcon, value: tally.cant, label: "can't" },
@@ -333,10 +506,17 @@ function ReactionTally({
   const visible = items.filter((i) => i.value > 0);
   if (visible.length === 0) return null;
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-      {visible.map(({ icon: Icon, value, label }) => (
-        <span key={label} className="inline-flex items-center gap-1" aria-label={`${value} ${label}`}>
-          <Icon className="size-3.5" aria-hidden="true" /> {value}
+    <div className="u-mono flex flex-wrap items-center gap-3" style={{ color: 'var(--ed-fg-soft)' }}>
+      {visible.map(({ icon: Icon, value, label, accent }) => (
+        <span
+          key={label}
+          className="inline-flex items-center gap-1"
+          aria-label={`${value} ${label}`}
+          style={accent ? { color: 'var(--ed-fg)' } : undefined}
+        >
+          <Icon className="size-3.5" aria-hidden="true" />
+          <span className="tabular-nums">{String(value).padStart(2, '0')}</span>
+          <span className="opacity-60">{label}</span>
         </span>
       ))}
     </div>
