@@ -38,64 +38,62 @@ export function CalendarReactions({ eventId }: { eventId: string }) {
     });
 
   return (
-    <div className="space-y-2">
-      <div
-        role="group"
-        aria-label="React to event"
-        className="grid grid-cols-2 gap-px sm:grid-cols-3"
-        style={{ background: 'var(--ed-line)' }}
-      >
-        {PRIMARY.map(({ kind, icon: Icon, label, num }) => (
-          <button
-            key={kind}
-            type="button"
-            disabled={pending}
-            aria-label={label}
-            className="ed-chip flex-col gap-1 px-2 py-2 sm:flex-row sm:gap-2"
-            style={{
-              border: 'none',
-              background: 'var(--ed-bg)',
-              color: 'var(--ed-fg)',
-              minHeight: '56px',
-              minWidth: 0,
-              fontSize: '0.6875rem',
-              letterSpacing: '0.03em',
-              textAlign: 'center',
-              justifyContent: 'center',
-            }}
-            onClick={() => fire(kind)}
-          >
-            <span className="hidden tabular-nums opacity-40 lg:inline">{num}</span>
-            <Icon aria-hidden="true" className="size-4 shrink-0" />
-            <span className="leading-tight">{label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Secondary row — `Can't` is visually demoted but stays a proper chip-button. */}
-      <div className="flex justify-end">
-        {SECONDARY.map(({ kind, icon: Icon, label }) => (
-          <button
-            key={kind}
-            type="button"
-            disabled={pending}
-            aria-label={label}
-            className="u-mono inline-flex items-center gap-2"
-            style={{
-              border: '1px solid var(--ed-line)',
-              padding: '0.4rem 0.75rem',
-              color: 'var(--ed-fg-soft)',
-              background: 'var(--ed-bg)',
-              minHeight: '36px',
-              borderRadius: 0,
-            }}
-            onClick={() => fire(kind)}
-          >
-            <Icon aria-hidden="true" className="size-3.5" />
-            <span>{label}</span>
-          </button>
-        ))}
-      </div>
+    <div
+      role="group"
+      aria-label="React to event"
+      className="grid grid-cols-2 gap-px sm:grid-cols-4"
+      style={{ background: 'var(--ed-line)' }}
+    >
+      {PRIMARY.map(({ kind, icon: Icon, label, num }) => (
+        <button
+          key={kind}
+          type="button"
+          disabled={pending}
+          aria-label={label}
+          className="ed-chip flex-col gap-1 px-2 py-2 sm:flex-row sm:gap-2"
+          style={{
+            border: 'none',
+            background: 'var(--ed-bg)',
+            color: 'var(--ed-fg)',
+            minHeight: '56px',
+            minWidth: 0,
+            fontSize: '0.6875rem',
+            letterSpacing: '0.03em',
+            textAlign: 'center',
+            justifyContent: 'center',
+          }}
+          onClick={() => fire(kind)}
+        >
+          <span className="hidden tabular-nums opacity-40 lg:inline">{num}</span>
+          <Icon aria-hidden="true" className="size-4 shrink-0" />
+          <span className="leading-tight">{label}</span>
+        </button>
+      ))}
+      {SECONDARY.map(({ kind, icon: Icon, label, num }) => (
+        <button
+          key={kind}
+          type="button"
+          disabled={pending}
+          aria-label={label}
+          className="ed-chip flex-col gap-1 px-2 py-2 sm:flex-row sm:gap-2"
+          style={{
+            border: 'none',
+            background: 'var(--ed-bg)',
+            color: 'var(--ed-fg-soft)',
+            minHeight: '56px',
+            minWidth: 0,
+            fontSize: '0.6875rem',
+            letterSpacing: '0.03em',
+            textAlign: 'center',
+            justifyContent: 'center',
+          }}
+          onClick={() => fire(kind)}
+        >
+          <span className="hidden tabular-nums opacity-40 lg:inline">{num}</span>
+          <Icon aria-hidden="true" className="size-4 shrink-0" />
+          <span className="leading-tight">{label}</span>
+        </button>
+      ))}
     </div>
   );
 }

@@ -197,7 +197,7 @@ test.describe('Buttons smoke — every page, every button', () => {
     const recipEmail = `r-${TS}@test.local`;
     await page.locator('input[name="displayName"]').fill('Smoke Recipient');
     await page.locator('input[name="email"]').fill(recipEmail);
-    await page.getByRole('button', { name: 'Add' }).click();
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
     await page.waitForTimeout(500);
 
     const checkbox = page.locator('input[type="checkbox"]').first();
@@ -225,7 +225,7 @@ test.describe('Buttons smoke — every page, every button', () => {
     const recipEmail = `fc-${TS}@test.local`;
     await page.locator('input[name="displayName"]').fill('Smoke');
     await page.locator('input[name="email"]').fill(recipEmail);
-    await page.getByRole('button', { name: 'Add' }).click();
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
     await page.waitForTimeout(400);
     await page.locator('input[type="checkbox"]').first().check();
     await page.getByRole('button', { name: /Send invites/ }).click();
@@ -267,7 +267,7 @@ test.describe('Buttons smoke — every page, every button', () => {
     const recipEmail = `respond-${TS}@test.local`;
     await page.locator('input[name="displayName"]').fill('R');
     await page.locator('input[name="email"]').fill(recipEmail);
-    await page.getByRole('button', { name: 'Add' }).click();
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
     await page.waitForTimeout(400);
     await page.locator('input[type="checkbox"]').first().check();
     await page.getByRole('button', { name: /Send invites/ }).click();
