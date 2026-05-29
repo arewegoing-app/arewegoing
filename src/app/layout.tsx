@@ -6,6 +6,7 @@ import { ensureMigrated } from '@/lib/db/client';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { MobileNavMenu } from '@/components/mobile-nav-menu';
+import { RegisterSW } from '@/lib/pwa/register-sw';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -30,7 +31,7 @@ const jbMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'are we going?',
   description: 'Group ticket coordination for live music',
-  manifest: '/manifest.json',
+  manifest: '/manifest.webmanifest',
 };
 
 export const viewport: Viewport = {
@@ -72,6 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className="min-h-full">
+        <RegisterSW />
         <div className="flex min-h-screen flex-col">
           <header
             className="ed-topbar border-b border-[color:var(--ed-line)]"
