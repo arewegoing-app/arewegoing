@@ -214,7 +214,42 @@ References: KLM, Vodafone India, Spotify (briefly) — customer-service Flows. M
 3. **After Discord ships + verification clears**: WhatsApp 1:1 bot with the fan-out pattern, plus a Flow for the RSVP form. Reuses identity-link table, RSVP table, conversation state machine from Discord.
 4. **Never**: Messenger group bot. Audience isn't there, Meta restrictions tightening.
 
-## Section 6 — Open questions for the user
+## Section 6 — Open-source references worth studying
+
+### Telegram (strongest open-source ecosystem)
+
+- `python-telegram-bot/python-telegram-bot` — canonical Python SDK; `examples/conversationbot.py` + `examples/inlinekeyboard.py` cover the two patterns we need.
+- `grammyjs/grammy` — modern TypeScript SDK; better ergonomic fit for a Next.js codebase. https://grammy.dev/
+- `telegram rsvp bot` on GitHub — multiple small (100-500 LOC) RSVP-specific bots with the inline-keyboard tally pattern. Mostly Python, mostly long-poll. Worth reading for patterns, not forking.
+
+### Discord
+
+- **`discord/cloudflare-sample-app`** — the single most useful repo to read before writing a line. Edge function, signed webhook verification, slash commands, message components, MIT-licensed, ~500 LOC. https://github.com/discord/cloudflare-sample-app
+- `discordjs/discord.js` — canonical SDK, mature.
+- `discord-api-types/discord-api-types` — typed REST primitives; better fit for serverless route handlers (no persistent gateway).
+- **Closed but UX gold standard**: Sesh, Apollo, Raid-Helper. Worth studying their install flow + embed layout before designing our own.
+
+### Matrix (wildcard for federated bridging)
+
+- `maubot/maubot` — Python plugin framework; community RSVP and poll plugins exist.
+- `mautrix/whatsapp` — bridges Matrix rooms to WhatsApp chats via the unofficial `whatsmeow` protocol. **TOS grey zone**; Meta has banned bridge accounts. Knowing it exists matters; shipping on it does not.
+- `mautrix/telegram` — same idea, lower risk because Telegram's TOS is more permissive.
+
+### WhatsApp
+
+- **TOS-compliant**: `tawn33y/whatsapp-cloud-api` (Node, typed, small surface). Twilio's WhatsApp RSVP tutorial (MIT-licensed sample).
+- **TOS-violating**: `tulir/whatsmeow` (Go), `WhiskeySockets/Baileys` (JS). Reverse-engineered WhatsApp Web protocol. Powers the bridges. Not a foundation for a public product — works until Meta notices.
+
+### Recommendation on forking
+
+Don't fork an existing RSVP bot. The good ones are mostly Python, mostly long-poll, mostly abandoned, and mostly don't map to a serverless Next.js codebase. Read them for patterns. Build fresh on the right primitives for our stack:
+
+1. **Read** `discord/cloudflare-sample-app` end to end (~500 LOC, the deployment shape).
+2. **Read** `grammy` or `discord-api-types` docs (the SDK ergonomics).
+3. **Read** `tawn33y/whatsapp-cloud-api` (the WhatsApp Cloud API shape for the eventual port).
+4. **Build** the identity-link table, RSVP-capture table, and webhook-verify helper generic from day one. Those three are ~80% of the WhatsApp port.
+
+## Section 7 — Open questions for the user
 
 - **Is there an actual Discord server today** where an arewegoing group already coordinates, or is the Discord bot still hypothetical?
 - **What is the target install ceiling for v1?** If we expect under 50 groups in the first six months, the share-link button is plainly enough.
