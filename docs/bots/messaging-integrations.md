@@ -249,7 +249,55 @@ Don't fork an existing RSVP bot. The good ones are mostly Python, mostly long-po
 3. **Read** `tawn33y/whatsapp-cloud-api` (the WhatsApp Cloud API shape for the eventual port).
 4. **Build** the identity-link table, RSVP-capture table, and webhook-verify helper generic from day one. Those three are ~80% of the WhatsApp port.
 
-## Section 7 — Open questions for the user
+## Section 7 — Product-shape ideation (read this before committing eng time)
+
+This section is strategic, not technical. The earlier sections answer "what is buildable". This one asks "what should we build at all".
+
+### The framing the platforms make us forget
+
+What makes arewegoing different from every other event app: **friends decide together** and **the people you invite never sign up**. Every messaging integration should be judged on whether it preserves or destroys those two properties. A bot that requires every friend to install something is worse than email. A bot that requires every friend to have an arewegoing account is worse than email. A bot that posts a tally everyone can see and tap, without any of them signing up, is **better** than email — and that pattern only exists on Discord, Telegram, and Messenger. Not WhatsApp. WhatsApp's group identity is phone numbers, which is too sensitive to expose to a bot. The API restrictions are downstream of that fact.
+
+### Five product shapes to consider
+
+**1. The lurker bot.** Bot lives in the group, notices "anyone going to The Beths Friday?" via regex, posts an RSVP card unprompted. Discord restricts it (message content intent review). Telegram allows it freely. The most magical UX, the least fashionable pattern. Prior art: EmacsBot, Hubot, Errbot from 2014-2017 chatops.
+
+**2. The share-target bot.** No bot in the group. You share an arewegoing URL into the group; the URL preview *is* the RSVP card. Friends tap and land on a calendar that already knows which group they came from via a signed token. When 5 people from the same WhatsApp thread tap the same URL within 10 minutes, the app infers the group from co-arrival. The most arewegoing-flavoured answer — works on every platform because it depends on no platform.
+
+**3. The friend-of-friend bot.** One person ("the host") installs the bot once. Bot DMs them custom event links. They paste the link into whatever group they want. Bot DMs them the tally. Works on WhatsApp, iMessage + Shortcuts, SMS via Twilio. The fan-out pattern reframed: the bot is the host's personal assistant, not the group's chat companion.
+
+**4. The Matrix bridge prototype.** Private Matrix homeserver, bridge to a WhatsApp group via `mautrix-whatsapp`, build a Matrix bot that relays into WhatsApp. Personal use only, will likely get banned, weekend project. The "prove the dream UX works at all" experiment — if the dream UX turns out to be annoying in practice, that's load-bearing information before 4 weeks of Meta verification.
+
+**5. The iMessage Shortcut.** A custom Apple Shortcut named "arewegoing this" — takes an event URL, opens contact picker, shares via iMessage/WhatsApp/Telegram/Signal per user choice. Distributed as a downloadable Shortcut file. Zero platform approvals. Android equivalent: tiny PWA with a Share Target manifest entry.
+
+### The provocation
+
+Shape 2 + Shape 5 together feel right for arewegoing. Both lean into the share-link as the integration. Both work everywhere. Both preserve "friends never sign up". Neither requires Meta verification, Discord OAuth, or a long-poll bot. **The interesting engineering work is on the receiving end of the link, not the sending end** — co-arrival inference, signed group tokens, sharp OG cards, sub-second calendar load. That's a more interesting problem than "build a Discord bot" and it ports to every platform for free.
+
+### What's over-rated
+
+- **Slash commands in chat.** Friend groups use words, not slashes.
+- **Per-platform feature parity.** You need RSVPs to work *at all* on the platform users actually use, not the same way on three platforms.
+- **A "bot framework" abstraction.** Three concrete integrations beat one abstract one. Build for one platform until the shared shape becomes obvious.
+
+### What's under-rated
+
+- **The share-link as a first-class product surface.** OG card, URL design, signed token, co-arrival inference.
+- **Telegram as a sandbox.** Permissive API, no approval, free. Build the most experimental version of every shape there first, learn, port the lessons.
+- **The Matrix bridge as UX research**, not a product. One weekend to learn whether the dream UX even feels right.
+
+### The question to hold open
+
+Does the audience need the bot *in* WhatsApp, or do they need arewegoing to feel like a *natural part of* their WhatsApp conversations? Those have very different answers. The first means Meta verification + 1:1 chats + templates + fees + weeks of approval. The second means sharp share-link + beautiful preview card + sub-second tap-and-RSVP page + "your group" detection that just works. Most product people who started at the first answer end up at the second. Worth holding open before committing.
+
+### Weekend prototype to actually learn
+
+1. **Saturday morning.** Shape 2 — share target + co-arrival detection on the calendar page. ~2h.
+2. **Saturday afternoon.** Shape 1 — Telegram lurker bot in a private chat with 2-3 friends. ~2h. See if ambient RSVP cards feel good or invasive.
+3. **Sunday morning.** Shape 5 — Apple Shortcut prototype. ~1h. Compare to the share button.
+
+The point isn't to ship any of these. The point is to learn which shape feels right before committing to weeks of platform work.
+
+## Section 8 — Open questions for the user
 
 - **Is there an actual Discord server today** where an arewegoing group already coordinates, or is the Discord bot still hypothetical?
 - **What is the target install ceiling for v1?** If we expect under 50 groups in the first six months, the share-link button is plainly enough.
