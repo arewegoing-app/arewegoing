@@ -68,7 +68,7 @@ export default function HomePage() {
             <strong className="u-mono">2. Share an event with friends.</strong>
             <span style={{ color: 'var(--ed-fg-soft)' }}>
               Sharing creates a group calendar at{' '}
-              <code style={{ background: 'var(--ed-accent)', padding: '0 0.2em' }}>
+              <code style={{ background: 'var(--ed-accent)', color: 'var(--ed-on-accent)', padding: '0 0.2em' }}>
                 /group/&hellip;
               </code>
               . The pinned event sits on top. The public list sits below.

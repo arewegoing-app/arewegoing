@@ -293,7 +293,7 @@ export default async function EventDetailPage({
           className="border px-4 py-2"
           style={{
             background: 'var(--ed-accent)',
-            color: 'var(--ed-fg)',
+            color: 'var(--ed-on-accent)',
             borderColor: 'var(--ed-line)',
           }}
         >
@@ -308,7 +308,7 @@ export default async function EventDetailPage({
           className="border px-4 py-2"
           style={{
             background: 'var(--ed-accent)',
-            color: 'var(--ed-fg)',
+            color: 'var(--ed-on-accent)',
             borderColor: 'var(--ed-line)',
           }}
         >
@@ -337,7 +337,7 @@ export default async function EventDetailPage({
       {activeCall && (
         <section
           className="ed-card p-4 sm:p-5"
-          style={{ background: 'var(--ed-accent)' }}
+          style={{ background: 'var(--ed-accent)', color: 'var(--ed-on-accent)' }}
         >
           <div className="u-mono opacity-70">[!] / Final call active</div>
           <p className="u-display mt-1 text-2xl">
@@ -475,11 +475,13 @@ export default async function EventDetailPage({
 }
 
 function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+  const isAccent = accent && value > 0;
   return (
     <div
       className="p-3 text-center"
       style={{
-        background: accent && value > 0 ? 'var(--ed-accent)' : 'var(--ed-bg)',
+        background: isAccent ? 'var(--ed-accent)' : 'var(--ed-bg)',
+        color: isAccent ? 'var(--ed-on-accent)' : 'var(--ed-fg)',
       }}
     >
       <div className="u-display tabular-nums" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)' }}>

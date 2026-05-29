@@ -27,7 +27,7 @@ export function WaitlistForm() {
         className="u-mono inline-flex items-center gap-2 px-4 py-3"
         style={{
           background: 'var(--ed-accent)',
-          color: 'var(--ed-fg)',
+          color: 'var(--ed-on-accent)',
           border: '1px solid var(--ed-line)',
           minHeight: '48px',
         }}

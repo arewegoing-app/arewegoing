@@ -16,6 +16,11 @@
   --ed-line: oklch(15% 0 0);
   --ed-accent: oklch(88% 0.22 125);
   --ed-accent-2: oklch(70% 0.22 35);
+  /* Text colour on top of --ed-accent / --ed-accent-2 backgrounds.
+     Both accents are bright (88% / 70% L); pairing them with --ed-fg
+     in dark mode (94% L) drops below WCAG AA. This token stays dark
+     in both themes. */
+  --ed-on-accent: oklch(15% 0 0);
 }
 
 @theme inline {
@@ -45,7 +50,7 @@ body:not(:has(.terminal-screen)) {
 }
 body:not(:has(.terminal-screen)) ::selection {
   background: var(--ed-accent);
-  color: var(--ed-fg);
+  color: var(--ed-on-accent);
 }
 
 /* Dark mode — editorial surface only. Two activation paths:
@@ -76,16 +81,8 @@ html.light body:not(:has(.terminal-screen)) {
   --ed-line: oklch(15% 0 0);
 }
 
-/* .u-accent-bg: lime background is a light colour so always keep text dark
-   regardless of dark-mode theme. Override the var(--ed-fg) default here. */
-@media (prefers-color-scheme: dark) {
-  body:not(:has(.terminal-screen)) .u-accent-bg {
-    color: oklch(15% 0 0);
-  }
-}
-html.dark body:not(:has(.terminal-screen)) .u-accent-bg {
-  color: oklch(15% 0 0);
-}
+/* .u-accent-bg uses --ed-on-accent (theme-independent dark) so WCAG AA
+   contrast holds in both light and dark mode. */
 
 .u-mono {
   font-family: var(--font-jbmono, ui-monospace, monospace);
@@ -105,7 +102,7 @@ html.dark body:not(:has(.terminal-screen)) .u-accent-bg {
   line-height: 0.9;
 }
 
-.u-accent-bg { background: var(--ed-accent); color: var(--ed-fg); padding: 0 0.12em; }
+.u-accent-bg { background: var(--ed-accent); color: var(--ed-on-accent); padding: 0 0.12em; }
 
 /* Section head — `[01] / Calendar  TITLE  12 EVENTS` */
 .ed-section-head {
@@ -201,8 +198,8 @@ html.dark body:not(:has(.terminal-screen)) .u-accent-bg {
 .ed-chip[aria-pressed="true"],
 .ed-chip[data-active="true"] {
   background: var(--ed-accent);
-  color: var(--ed-fg);
-  border-color: var(--ed-fg);
+  color: var(--ed-on-accent);
+  border-color: var(--ed-on-accent);
 }
 .ed-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 

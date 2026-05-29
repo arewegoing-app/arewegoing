@@ -264,7 +264,7 @@ export default async function CalendarPage({
           className="border px-4 py-2"
           style={{
             background: 'var(--ed-accent)',
-            color: 'var(--ed-fg)',
+            color: 'var(--ed-on-accent)',
             borderColor: 'var(--ed-line)',
           }}
         >
@@ -594,7 +594,7 @@ function EventCard({
                 className="u-mono"
                 style={{
                   background: 'var(--ed-accent)',
-                  color: 'var(--ed-fg)',
+                  color: 'var(--ed-on-accent)',
                   padding: '0.25rem 0.5rem',
                   border: '1px solid var(--ed-line)',
                 }}
@@ -630,7 +630,7 @@ function EventCard({
       {/* Rally CTA — only when 3+ are down and unclaimed */}
       {readyToRally && (
         <div className="border-t border-[color:var(--ed-line)] p-4 sm:p-5"
-          style={{ background: 'var(--ed-accent)' }}
+          style={{ background: 'var(--ed-accent)', color: 'var(--ed-on-accent)' }}
         >
           <div className="u-mono mb-2">
             ↳ {downCount} friends down — rally now
