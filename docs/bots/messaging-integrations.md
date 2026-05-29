@@ -1,5 +1,7 @@
 # Messaging integrations: spec and recommendation
 
+> **Companion docs:** `discord-mvp-plan.md` (concrete weekend-scoped Discord bot plan — read only after deciding Discord is the direction).
+
 > **TL;DR.** Ship a "Share to WhatsApp" deep-link button now. Build a Discord bot second, only if a real community asks. Skip Slack and Telegram bots for v1. WhatsApp bots cannot join group chats, so a bot route is the wrong shape for the primary audience.
 
 Scan date: 2026-05-29. Spec owner: arewegoing core team.
