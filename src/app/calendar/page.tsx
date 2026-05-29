@@ -7,6 +7,7 @@ import { events, resaleListings, seriesSubscriptions } from '@/lib/db/schema';
 import { getReactionTallies } from '@/lib/discovery/reactions';
 import { dedupeEvents } from '@/lib/discovery/dedupe';
 import { readAnonId } from '@/lib/anon/identity';
+import { withRef } from '@/lib/outbound/with-ref';
 import { CalendarReactions } from './reactions-row';
 import { ClaimForm } from './claim-form';
 import { WelcomeCard } from './welcome-card';
@@ -547,7 +548,7 @@ function EventCard({
             </Link>
           ) : event.ticketUrl ? (
             <a
-              href={event.ticketUrl}
+              href={withRef(event.ticketUrl)}
               target="_blank"
               rel="noreferrer"
               className="hover:underline"
@@ -610,7 +611,7 @@ function EventCard({
         {/* Ticket source link */}
         {event.ticketUrl && (
           <a
-            href={event.ticketUrl}
+            href={withRef(event.ticketUrl)}
             target="_blank"
             rel="noreferrer"
             className="u-mono inline-flex items-center gap-1 self-start hover:text-[color:var(--ed-accent-2)]"
