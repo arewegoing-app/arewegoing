@@ -5,6 +5,8 @@ import { auth, signOut } from '@/lib/auth/auth';
 import { ensureMigrated } from '@/lib/db/client';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { MobileNavMenu } from '@/components/mobile-nav-menu';
+import { RegisterSW } from '@/lib/pwa/register-sw';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -29,7 +31,7 @@ const jbMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'are we going?',
   description: 'Group ticket coordination for live music',
-  manifest: '/manifest.json',
+  manifest: '/manifest.webmanifest',
 };
 
 export const viewport: Viewport = {
@@ -71,6 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className="min-h-full">
+        <RegisterSW />
         <div className="flex min-h-screen flex-col">
           <header
             className="ed-topbar border-b border-[color:var(--ed-line)]"
@@ -87,7 +90,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               >
                 ARE&nbsp;WE&nbsp;GOING<span style={{ color: 'var(--ed-accent)' }}>?</span>
               </Link>
-              <div className="flex items-center gap-3 text-sm">
+              {/* Desktop nav — visible at sm and up. */}
+              <div className="hidden items-center gap-3 text-sm sm:flex">
                 <Link href="/calendar" className="u-mono hover:text-[color:var(--ed-accent-2)]">
                   <span aria-hidden>↳ </span>Calendar
                 </Link>
@@ -103,7 +107,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 {session?.user ? (
                   <>
                     <span
-                      className="u-mono hidden sm:inline"
+                      className="u-mono"
                       style={{ color: 'var(--ed-fg-soft)' }}
                       aria-label="Signed in as"
                     >
@@ -125,6 +129,34 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     Sign in <span aria-hidden>↗</span>
                   </Link>
                 )}
+              </div>
+
+              {/* Mobile nav — visible below sm. */}
+              <div className="sm:hidden">
+                <MobileNavMenu
+                  signedIn={!!session?.user}
+                  userEmail={session?.user?.email}
+                  signOutSlot={
+                    session?.user ? (
+                      <form
+                        action={async () => {
+                          'use server';
+                          await signOut({ redirectTo: '/' });
+                        }}
+                      >
+                        <Button
+                          type="submit"
+                          variant="ghost"
+                          size="sm"
+                          className="u-mono w-full justify-center"
+                          style={{ minHeight: '48px' }}
+                        >
+                          Sign out
+                        </Button>
+                      </form>
+                    ) : null
+                  }
+                />
               </div>
             </nav>
           </header>

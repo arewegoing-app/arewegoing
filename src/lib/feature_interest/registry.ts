@@ -35,6 +35,10 @@ export const FEATURE_REGISTRY: Record<
     label: 'New features',
     tagline: 'Heads-up when something new ships.',
   },
+  'general.waitlist': {
+    label: 'arewegoing waitlist',
+    tagline: 'Email me when arewegoing is ready for general use.',
+  },
 };
 
 export function describeFeature(key: string): { label: string; tagline?: string } {

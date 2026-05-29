@@ -49,7 +49,7 @@ export function NotifyMeButton({
         className="u-mono inline-flex items-center gap-2 px-3 py-2"
         style={{
           background: 'var(--ed-accent)',
-          color: 'var(--ed-fg)',
+          color: 'var(--ed-on-accent)',
           border: '1px solid var(--ed-line)',
           minHeight: '44px',
         }}

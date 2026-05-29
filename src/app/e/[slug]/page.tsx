@@ -20,6 +20,7 @@ import {
 import { getReliabilityStats } from '@/lib/memory/stats';
 import { now } from '@/lib/time';
 import { listMyGroups } from '@/lib/groups/actions';
+import { withRef } from '@/lib/outbound/with-ref';
 import type { GroupWithCount } from '@/lib/groups/actions';
 import { PromoPanel } from './promo-panel';
 import { InviteForm } from './invite-form';
@@ -284,6 +285,19 @@ export default async function EventDetailPage({
             icsUrl={`/e/${event.slug}/ics`}
             showRefresh={!!(event.sourceUrl || event.ticketUrl)}
           />
+          {event.ticketUrl && (
+            <a
+              href={withRef(event.ticketUrl)}
+              target="_blank"
+              rel="noreferrer"
+              data-testid="event-detail-ticket-link"
+              className="ed-chip u-mono"
+              style={{ minHeight: '44px' }}
+              aria-label={`Get tickets for ${event.title} (opens in new tab)`}
+            >
+              Get tickets <span aria-hidden>↗</span>
+            </a>
+          )}
         </div>
       </header>
 
@@ -293,7 +307,7 @@ export default async function EventDetailPage({
           className="border px-4 py-2"
           style={{
             background: 'var(--ed-accent)',
-            color: 'var(--ed-fg)',
+            color: 'var(--ed-on-accent)',
             borderColor: 'var(--ed-line)',
           }}
         >
@@ -308,7 +322,7 @@ export default async function EventDetailPage({
           className="border px-4 py-2"
           style={{
             background: 'var(--ed-accent)',
-            color: 'var(--ed-fg)',
+            color: 'var(--ed-on-accent)',
             borderColor: 'var(--ed-line)',
           }}
         >
@@ -337,7 +351,7 @@ export default async function EventDetailPage({
       {activeCall && (
         <section
           className="ed-card p-4 sm:p-5"
-          style={{ background: 'var(--ed-accent)' }}
+          style={{ background: 'var(--ed-accent)', color: 'var(--ed-on-accent)' }}
         >
           <div className="u-mono opacity-70">[!] / Final call active</div>
           <p className="u-display mt-1 text-2xl">
@@ -475,11 +489,13 @@ export default async function EventDetailPage({
 }
 
 function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+  const isAccent = accent && value > 0;
   return (
     <div
       className="p-3 text-center"
       style={{
-        background: accent && value > 0 ? 'var(--ed-accent)' : 'var(--ed-bg)',
+        background: isAccent ? 'var(--ed-accent)' : 'var(--ed-bg)',
+        color: isAccent ? 'var(--ed-on-accent)' : 'var(--ed-fg)',
       }}
     >
       <div className="u-display tabular-nums" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)' }}>

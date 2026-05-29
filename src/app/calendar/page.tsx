@@ -1,24 +1,20 @@
 import Link from 'next/link';
-import { and, asc, gte, lte, or, isNull, eq, sql, ilike } from 'drizzle-orm';
-import { CheckCircle2Icon, EyeIcon, TicketIcon, TicketCheckIcon, XCircleIcon } from 'lucide-react';
+import { and, asc, gte, lte, or, isNull, eq, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth/auth';
 import { db, ensureMigrated } from '@/lib/db/client';
 import { events, resaleListings, seriesSubscriptions } from '@/lib/db/schema';
 import { getReactionTallies } from '@/lib/discovery/reactions';
 import { dedupeEvents } from '@/lib/discovery/dedupe';
 import { readAnonId } from '@/lib/anon/identity';
-import { CalendarReactions } from './reactions-row';
-import { ClaimForm } from './claim-form';
 import { WelcomeCard } from './welcome-card';
-import { SeriesFollowButton } from './series-follow';
 import { NotifyMeButton } from '@/components/notify-me-button';
-import { FilterBar } from './filter-bar';
 import { ConnectRow } from './connect-row';
+import { ClientFilter } from './client-filter';
+import { filterEvents } from './filter-events';
 import { cookies } from 'next/headers';
+import type { ClientEvent } from './client-filter';
 
 export const dynamic = 'force-dynamic';
-
-type EventRow = typeof events.$inferSelect;
 
 export default async function CalendarPage({
   searchParams,
@@ -73,69 +69,35 @@ export default async function CalendarPage({
     ? or(isNull(events.ownerUserId), eq(events.ownerUserId, session!.user!.id))!
     : isNull(events.ownerUserId);
 
-  // Build optional filter conditions.
-  const fromDate = filterFrom ? new Date(filterFrom) : undefined;
-  // End-of-day for the `to` filter.
-  const toDate = filterTo
-    ? (() => {
-        const d = new Date(filterTo);
-        d.setHours(23, 59, 59, 999);
-        return d;
-      })()
-    : undefined;
-
-  const searchFilter =
-    filterQ != null
-      ? or(
-          ilike(events.title, `%${filterQ}%`),
-          ilike(events.venue, `%${filterQ}%`),
-        )
-      : undefined;
-  const venueFilter = filterVenue != null ? eq(events.venue, filterVenue) : undefined;
-  const priceFilter =
-    filterPriceMax != null ? lte(events.priceLow, filterPriceMax) : undefined;
-
-  // Two passes: events with a real date in the next 90 days, plus TBD events
-  // (live ingest hasn't resolved a date yet). TBD events show in their own
-  // bucket at the bottom so they don't disappear from the calendar.
-  // When date filters are active, suppress the TBD bucket.
+  // Fetch ALL upcoming events in the 90-day window without text/venue/price
+  // DB filters. Client-side filtering (via filterEvents) handles those.
+  // DB still enforces date range and ownership so we don't ship private rows.
   const upcoming = await db
     .select()
     .from(events)
     .where(
       and(
         ownershipFilter,
-        gte(events.startsAt, fromDate ?? now),
-        lte(events.startsAt, toDate ?? ninetyDaysOut),
-        searchFilter,
-        venueFilter,
-        priceFilter,
+        gte(events.startsAt, now),
+        lte(events.startsAt, ninetyDaysOut),
       )!,
     )
     .orderBy(asc(events.startsAt));
 
-  // TBD events are only shown when no date-range filter is active.
-  const tbd =
-    filterFrom || filterTo
-      ? []
-      : await db
-          .select()
-          .from(events)
-          .where(
-            and(
-              ownershipFilter,
-              isNull(events.startsAt),
-              searchFilter,
-              venueFilter,
-              priceFilter,
-            )!,
-          );
+  // TBD events (no date yet).
+  const tbd = await db
+    .select()
+    .from(events)
+    .where(
+      and(
+        ownershipFilter,
+        isNull(events.startsAt),
+      )!,
+    );
 
-  // Same real-world gig sometimes shows up under multiple source URLs
-  // (Humanitix + Under the Radar). Collapse to one card per gig.
+  // Same real-world gig sometimes shows up under multiple source URLs.
+  // Collapse to one card per gig.
   const allShown = dedupeEvents([...upcoming, ...tbd]);
-  const dedupedUpcoming = allShown.filter((e) => e.startsAt !== null);
-  const dedupedTbd = allShown.filter((e) => e.startsAt === null);
   const tallies = await getReactionTallies(allShown.map((e) => e.id));
 
   // Count active resale listings per event in one query.
@@ -150,29 +112,48 @@ export default async function CalendarPage({
     for (const r of rows) resaleCounts.set(r.eventId, Number(r.count));
   }
 
-  // Distinct venues — computed WITHOUT the venue filter so the dropdown always
-  // shows all options regardless of what's selected.
-  const venueRows = await db
-    .selectDistinct({ venue: events.venue })
-    .from(events)
-    .where(
-      and(
-        ownershipFilter,
-        gte(events.startsAt, fromDate ?? now),
-        lte(events.startsAt, toDate ?? ninetyDaysOut),
-        searchFilter,
-        priceFilter,
-      )!,
-    )
-    .orderBy(asc(events.venue));
-  const distinctVenues = venueRows
-    .map((r) => r.venue)
-    .filter((v): v is string => v != null && v.length > 0);
+  // Distinct venues for the dropdown (from all events, not filtered).
+  const distinctVenues = [...new Set(
+    allShown
+      .map((e) => e.venue)
+      .filter((v): v is string => v != null && v.length > 0)
+  )].sort();
 
-  const grouped = groupByWeek(dedupedUpcoming);
+  // Server-side filter for SSR output (SEO + fast cold load).
+  // The client will use the same filterEvents function for subsequent
+  // client-side filter changes, keeping behavior identical.
+  const filterState = {
+    q: filterQ,
+    venue: filterVenue,
+    from: filterFrom,
+    to: filterTo,
+    priceMax: filterPriceMax,
+  };
+  const serverFiltered = filterEvents(allShown, filterState);
+  const totalEvents = serverFiltered.length;
 
-  const totalEvents = dedupedUpcoming.length + dedupedTbd.length;
-  const eventNumPadding = String(totalEvents).length;
+  // Build serializable client event list and tallies map.
+  // Dates must be serialized as ISO strings to cross the server/client boundary.
+  const clientEvents: ClientEvent[] = allShown.map((e) => ({
+    id: e.id,
+    slug: e.slug,
+    title: e.title,
+    venue: e.venue,
+    ticketUrl: e.ticketUrl,
+    seriesName: e.seriesName,
+    ownerUserId: e.ownerUserId,
+    anonOwnerId: e.anonOwnerId,
+    priceLow: e.priceLow,
+    priceHigh: e.priceHigh,
+    city: e.city,
+    metadata: e.metadata,
+    // Dates cross server/client boundary as Date objects (Next.js serializes them).
+    startsAt: e.startsAt,
+    onSaleAt: e.onSaleAt,
+  }));
+
+  const talliesRecord = Object.fromEntries(tallies.entries());
+  const resaleRecord = Object.fromEntries(resaleCounts.entries());
 
   return (
     <div className="space-y-8 sm:space-y-12">
@@ -246,17 +227,6 @@ export default async function CalendarPage({
 
       <WelcomeCard dismissed={welcomeDismissed} />
 
-      <FilterBar
-        venues={distinctVenues}
-        current={{
-          q: filterQ,
-          venue: filterVenue,
-          from: filterFrom,
-          to: filterTo,
-          priceMax: sp.priceMax?.trim() || undefined,
-        }}
-      />
-
       {sp.reaction && (
         <div
           role="status"
@@ -292,87 +262,16 @@ export default async function CalendarPage({
           </div>
         </div>
 
-        {totalEvents === 0 && hasFilters ? (
-          <div className="ed-card py-16 text-center">
-            <h3 className="u-display text-2xl">No matches.</h3>
-            <p className="u-mono mt-2 opacity-60">
-              Try adjusting or clearing your filters.
-            </p>
-            <Link href="/calendar" className="ed-chip mt-6 inline-flex">
-              ↳ Clear filters
-            </Link>
-          </div>
-        ) : totalEvents === 0 ? (
-          <div className="ed-card py-16 text-center">
-            <h3 className="u-display text-2xl">Nothing yet.</h3>
-            <p className="u-mono mt-2 opacity-60">
-              Ingest hasn&apos;t pulled anything fresh.
-            </p>
-            {signedIn && (
-              <Link href="/new" className="ed-chip mt-6 inline-flex">
-                + Add an event
-              </Link>
-            )}
-          </div>
-        ) : (
-          <div className="mt-4 space-y-10">
-            {grouped.map(({ weekStart, items }, gi) => (
-              <section
-                key={weekStart.toISOString()}
-                aria-label={`Week of ${weekStart.toDateString()}`}
-              >
-                <div className="mb-3 flex items-baseline justify-between border-b border-[color:var(--ed-line)] pb-1">
-                  <h3 className="u-mono opacity-60">
-                    ↳ Week of{' '}
-                    {weekStart.toLocaleDateString('en-NZ', {
-                      day: 'numeric',
-                      month: 'short',
-                      timeZone: 'Pacific/Auckland',
-                    })}
-                  </h3>
-                  <span className="u-mono opacity-40">
-                    {String(items.length).padStart(2, '0')}
-                  </span>
-                </div>
-                <ul className="grid grid-cols-1 gap-px bg-[color:var(--ed-line)] border border-[color:var(--ed-line)] sm:grid-cols-2">
-                  {items.map((e, i) => (
-                    <EventCard
-                      key={e.id}
-                      event={e}
-                      tally={tallies.get(e.id)}
-                      resaleCount={resaleCounts.get(e.id) ?? 0}
-                      isFollowingSeries={e.seriesName ? followedSeries.has(e.seriesName) : false}
-                      indexLabel={String(gi * 100 + i + 1).padStart(eventNumPadding, '0')}
-                    />
-                  ))}
-                </ul>
-              </section>
-            ))}
-
-            {dedupedTbd.length > 0 && (
-              <section aria-label="Events with no fixed date yet">
-                <div className="mb-3 flex items-baseline justify-between border-b border-[color:var(--ed-line)] pb-1">
-                  <h3 className="u-mono opacity-60">↳ Date TBD</h3>
-                  <span className="u-mono opacity-40">
-                    {String(dedupedTbd.length).padStart(2, '0')}
-                  </span>
-                </div>
-                <ul className="grid grid-cols-1 gap-px bg-[color:var(--ed-line)] border border-[color:var(--ed-line)] sm:grid-cols-2">
-                  {dedupedTbd.map((e, i) => (
-                    <EventCard
-                      key={e.id}
-                      event={e}
-                      tally={tallies.get(e.id)}
-                      resaleCount={resaleCounts.get(e.id) ?? 0}
-                      isFollowingSeries={e.seriesName ? followedSeries.has(e.seriesName) : false}
-                      indexLabel={`T·${String(i + 1).padStart(2, '0')}`}
-                    />
-                  ))}
-                </ul>
-              </section>
-            )}
-          </div>
-        )}
+        {/* ClientFilter owns the filter UI + filtered event list. */}
+        <ClientFilter
+          initialEvents={clientEvents}
+          tallies={talliesRecord}
+          resaleCounts={resaleRecord}
+          followedSeries={[...followedSeries]}
+          venues={distinctVenues}
+          initialFilter={filterState}
+          totalServerCount={allShown.length}
+        />
       </section>
 
       {/* Connect section — slice 7 mock shells. */}
@@ -464,234 +363,4 @@ export default async function CalendarPage({
       </footer>
     </div>
   );
-}
-
-type Tally = {
-  interested: number;
-  down: number;
-  cant: number;
-  pledge_1: number;
-  pledge_2: number;
-  have_ticket: number;
-  extras: number;
-  need_ticket: number;
-};
-
-const ZERO_TALLY: Tally = {
-  interested: 0,
-  down: 0,
-  cant: 0,
-  pledge_1: 0,
-  pledge_2: 0,
-  have_ticket: 0,
-  extras: 0,
-  need_ticket: 0,
-};
-
-function EventCard({
-  event,
-  tally,
-  resaleCount,
-  isFollowingSeries,
-  indexLabel,
-}: {
-  event: EventRow;
-  tally: Tally | undefined;
-  resaleCount: number;
-  isFollowingSeries: boolean;
-  indexLabel: string;
-}) {
-  const t = tally ?? ZERO_TALLY;
-  const downCount = t.down + t.pledge_1 + t.pledge_2 + t.have_ticket;
-  const unclaimed = !event.ownerUserId && !event.anonOwnerId;
-  const readyToRally = downCount >= 3 && unclaimed;
-
-  const dateStr = event.startsAt
-    ? new Date(event.startsAt).toLocaleString('en-NZ', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZone: 'Pacific/Auckland',
-      })
-    : 'TBD';
-
-  return (
-    <li
-      className="ed-card flex flex-col"
-      style={{ border: '0' }}
-    >
-      <div className="flex flex-col gap-3 p-4 sm:p-5">
-        {/* Meta row — numbered index, date, price band */}
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="ed-card__num">FIG·{indexLabel}</span>
-          <span className="u-mono" style={{ color: 'var(--ed-fg-soft)' }}>
-            {dateStr}
-            {event.priceLow ? ` · $${event.priceLow}` : ''}
-          </span>
-        </div>
-
-        {/* Title */}
-        <h3
-          className="u-display"
-          style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.25rem)', margin: 0 }}
-        >
-          {!unclaimed ? (
-            <Link
-              href={`/e/${event.slug}`}
-              className="hover:underline"
-              style={{ textDecorationThickness: '2px' }}
-            >
-              {event.title}
-            </Link>
-          ) : event.ticketUrl ? (
-            <a
-              href={event.ticketUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="hover:underline"
-              style={{ textDecorationThickness: '2px' }}
-              aria-label={`${event.title} — view tickets (opens in new tab)`}
-            >
-              {event.title}
-            </a>
-          ) : (
-            event.title
-          )}
-        </h3>
-
-        {/* Venue */}
-        <div className="u-mono leading-snug" style={{ color: 'var(--ed-fg-soft)' }}>
-          <span aria-hidden>▪ </span>
-          {event.venue ?? 'Venue TBA'}
-        </div>
-
-        {/* Badges row */}
-        {(event.seriesName || resaleCount > 0) && (
-          <div className="flex flex-wrap items-center gap-2">
-            {event.seriesName && (
-              <>
-                <span
-                  className="u-mono"
-                  style={{
-                    background: 'var(--ed-fg)',
-                    color: 'var(--ed-bg)',
-                    padding: '0.25rem 0.5rem',
-                  }}
-                >
-                  {event.seriesName}
-                </span>
-                <SeriesFollowButton
-                  seriesName={event.seriesName}
-                  initialSubscribed={isFollowingSeries}
-                />
-              </>
-            )}
-            {resaleCount > 0 && (
-              <span
-                className="u-mono"
-                style={{
-                  background: 'var(--ed-accent)',
-                  color: 'var(--ed-fg)',
-                  padding: '0.25rem 0.5rem',
-                  border: '1px solid var(--ed-line)',
-                }}
-              >
-                ▸ {resaleCount} resale {resaleCount === 1 ? 'ticket' : 'tickets'}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Live tally — only shown when non-empty */}
-        <ReactionTally tally={t} />
-
-        {/* Ticket source link */}
-        {event.ticketUrl && (
-          <a
-            href={event.ticketUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="u-mono inline-flex items-center gap-1 self-start hover:text-[color:var(--ed-accent-2)]"
-            style={{ color: 'var(--ed-fg-soft)' }}
-          >
-            ↳ {shortUrl(event.ticketUrl)} <span aria-hidden>↗</span>
-          </a>
-        )}
-      </div>
-
-      {/* Reaction row — separator-as-border, full bleed */}
-      <div className="border-t border-[color:var(--ed-line)] p-4 sm:p-5">
-        <CalendarReactions eventId={event.id} />
-      </div>
-
-      {/* Rally CTA — only when 3+ are down and unclaimed */}
-      {readyToRally && (
-        <div className="border-t border-[color:var(--ed-line)] p-4 sm:p-5"
-          style={{ background: 'var(--ed-accent)' }}
-        >
-          <div className="u-mono mb-2">
-            ↳ {downCount} friends down — rally now
-          </div>
-          <ClaimForm eventId={event.id} eventTitle={event.title} />
-        </div>
-      )}
-    </li>
-  );
-}
-
-function ReactionTally({ tally }: { tally: Tally }) {
-  const items: Array<{ icon: typeof EyeIcon; value: number; label: string; accent?: boolean }> = [
-    { icon: EyeIcon, value: tally.interested, label: 'interested' },
-    { icon: CheckCircle2Icon, value: tally.down, label: 'down', accent: true },
-    { icon: TicketIcon, value: tally.pledge_1 + tally.pledge_2, label: 'pledging' },
-    { icon: TicketCheckIcon, value: tally.have_ticket, label: 'have ticket' },
-    { icon: TicketCheckIcon, value: tally.extras, label: 'extras', accent: true },
-    { icon: TicketCheckIcon, value: tally.need_ticket, label: 'need one', accent: true },
-    { icon: XCircleIcon, value: tally.cant, label: "can't" },
-  ];
-  const visible = items.filter((i) => i.value > 0);
-  if (visible.length === 0) return null;
-  return (
-    <div className="u-mono flex flex-wrap items-center gap-3" style={{ color: 'var(--ed-fg-soft)' }}>
-      {visible.map(({ icon: Icon, value, label, accent }) => (
-        <span
-          key={label}
-          className="inline-flex items-center gap-1"
-          aria-label={`${value} ${label}`}
-          style={accent ? { color: 'var(--ed-fg)' } : undefined}
-        >
-          <Icon className="size-3.5" aria-hidden="true" />
-          <span className="tabular-nums">{String(value).padStart(2, '0')}</span>
-          <span className="opacity-60">{label}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function groupByWeek(items: EventRow[]): { weekStart: Date; items: EventRow[] }[] {
-  const buckets = new Map<string, { weekStart: Date; items: EventRow[] }>();
-  for (const item of items) {
-    if (!item.startsAt) continue;
-    const d = new Date(item.startsAt);
-    const dow = (d.getDay() + 6) % 7;
-    const monday = new Date(d);
-    monday.setDate(d.getDate() - dow);
-    monday.setHours(0, 0, 0, 0);
-    void 0;
-    const key = monday.toISOString();
-    if (!buckets.has(key)) buckets.set(key, { weekStart: monday, items: [] });
-    buckets.get(key)!.items.push(item);
-  }
-  return [...buckets.values()].sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
-}
-
-function shortUrl(u: string): string {
-  try {
-    return new URL(u).hostname.replace(/^www\./, '');
-  } catch {
-    return u;
-  }
 }

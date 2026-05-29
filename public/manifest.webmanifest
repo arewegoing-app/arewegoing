@@ -1,0 +1,35 @@
+{
+  "name": "are we going?",
+  "short_name": "arewegoing",
+  "description": "Group ticket coordination for live music",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#33ff33",
+  "background_color": "#f5f1e6",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
