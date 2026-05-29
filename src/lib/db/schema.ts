@@ -319,6 +319,10 @@ export const groups = pgTable('groups', {
   anonOwnerId: text('anon_owner_id'),
   city: text('city').notNull().default('Wellington'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  // anon-groups-share additions:
+  creatorUserId: text('creator_user_id').references(() => users.id),
+  creatorAnonId: text('creator_anon_id'),
+  pinnedEventId: text('pinned_event_id').references(() => events.id),
 });
 
 /**
@@ -337,6 +341,39 @@ export const groupMembers = pgTable('group_members', {
 
 export type Group = typeof groups.$inferSelect;
 export type GroupMember = typeof groupMembers.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// anon-groups-share — anon_profiles + group_events
+// ---------------------------------------------------------------------------
+
+/**
+ * Lightweight profile row keyed by the gigs_anon cookie value.
+ * Optionally enriched with an emoji + display name in the group calendar view.
+ */
+export const anonProfiles = pgTable('anon_profiles', {
+  id: text('id').primaryKey(),          // matches the cookie value
+  emoji: text('emoji'),                 // 1 grapheme
+  displayName: text('display_name'),    // 1-32 chars
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  mergedIntoUserId: text('merged_into_user_id'),
+});
+export type AnonProfile = typeof anonProfiles.$inferSelect;
+
+/**
+ * Events pinned into a share-group.
+ * One row per (group, event). The creator (user or anon) is recorded for audit.
+ */
+export const groupEvents = pgTable('group_events', {
+  id: id(),
+  groupId: text('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  addedByUserId: text('added_by_user_id').references(() => users.id),
+  addedByAnonId: text('added_by_anon_id'),
+  addedAt: timestamp('added_at').notNull().defaultNow(),
+}, (t) => ({
+  uniqGroupEvent: uniqueIndex('group_events_group_event').on(t.groupId, t.eventId),
+}));
+export type GroupEvent = typeof groupEvents.$inferSelect;
 
 /**
  * features-v2: intent log for clickable-shell features. One row per

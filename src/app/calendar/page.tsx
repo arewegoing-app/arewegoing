@@ -15,6 +15,7 @@ import { SeriesFollowButton } from './series-follow';
 import { NotifyMeButton } from '@/components/notify-me-button';
 import { FilterBar } from './filter-bar';
 import { ConnectRow } from './connect-row';
+import { ShareEventButton } from '@/components/share-event-button';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
@@ -608,18 +609,21 @@ function EventCard({
         {/* Live tally — only shown when non-empty */}
         <ReactionTally tally={t} />
 
-        {/* Ticket source link */}
-        {event.ticketUrl && (
-          <a
-            href={withRef(event.ticketUrl)}
-            target="_blank"
-            rel="noreferrer"
-            className="u-mono inline-flex items-center gap-1 self-start hover:text-[color:var(--ed-accent-2)]"
-            style={{ color: 'var(--ed-fg-soft)' }}
-          >
-            ↳ {shortUrl(event.ticketUrl)} <span aria-hidden>↗</span>
-          </a>
-        )}
+        {/* Ticket source link + share chip */}
+        <div className="flex flex-wrap items-center gap-4">
+          {event.ticketUrl && (
+            <a
+              href={withRef(event.ticketUrl)}
+              target="_blank"
+              rel="noreferrer"
+              className="u-mono inline-flex items-center gap-1 hover:text-[color:var(--ed-accent-2)]"
+              style={{ color: 'var(--ed-fg-soft)' }}
+            >
+              ↳ {shortUrl(event.ticketUrl)} <span aria-hidden>↗</span>
+            </a>
+          )}
+          <ShareEventButton eventId={event.id} eventTitle={event.title} />
+        </div>
       </div>
 
       {/* Reaction row — separator-as-border, full bleed */}
