@@ -152,7 +152,69 @@ The minimum-viable WhatsApp integration is the share-link button. Do that. Reass
 - **Ongoing cost:** Per-conversation fees, NZ marketing tier roughly USD $0.05 each at current rates.
 - **Approval timeline:** 1 to 3 weeks for Meta Business verification, plus per-template review.
 
-## Section 5 — Open questions for the user
+## Section 5 — Meta deep dive (Messenger group bots, WhatsApp Flows)
+
+### Messenger group bots — the closest thing to "RSVP in the chat"
+
+Facebook Messenger Platform technically supports bots in group threads via the Handover Protocol and the Send API with `recipient.thread_key`. Source: https://developers.facebook.com/docs/messenger-platform/discovery/group-conversations/
+
+Prior art: Pluto (shut down 2018), Sephora's group gifting bot (2017), PartyRound (2017-2019). The shape worked. Why it doesn't ship today:
+
+- Bots can only join group threads where every member opted in to third-party apps in their Messenger privacy settings. Most users have not.
+- `pages_messaging` permission requires Meta App Review (same wall as WhatsApp).
+- Many group thread features moved behind discontinued products (Workplace).
+- Messenger usage in NZ friend groups is an order of magnitude below WhatsApp.
+
+Verdict: technical path exists, audience does not. Skip.
+
+### WhatsApp 1:1 bot with "rally the group" fan-out pattern
+
+The most honest WhatsApp answer. The bot lives in 1:1 chats; coordination fans out into the group thread via humans.
+
+Flow:
+1. Organiser picks 5 friends, hits "Send via WhatsApp" on arewegoing.
+2. Each friend gets a 1:1 template message: "Oli is going to The Beths on Friday. Reply YES, NO, or MAYBE."
+3. Friend replies in their 1:1 thread; bot writes RSVP to arewegoing.
+4. Bot posts back: "5 of 5 friends replied. 4 yes, 1 maybe. Tap to see who's going: arewegoing.app/group/abc123/calendar"
+5. Organiser sees live tally in the web app, optionally shares the calendar link into the actual group chat using `wa.me`.
+
+Closest reference implementation: Twilio's "WhatsApp RSVP bot" tutorial at https://www.twilio.com/docs/whatsapp/tutorial/build-a-whatsapp-rsvp-application. Other patterns: Glide's WhatsApp event RSVPs templates, Tigerhall (Singapore, NZ-relevant tone).
+
+Costs that stack:
+- Meta Business verification: 1-3 weeks, can fail. arewegoing as a worker-coop pre-incorporation will likely fail today. **This is the actual blocker.**
+- Dedicated NZ business phone number.
+- Template approval for every outbound message shape (24-72h each, can be rejected).
+- Per-conversation fees, NZ utility tier roughly USD $0.04-0.06 each.
+- 24-hour window: freeform only inside it; outside, only pre-approved templates.
+
+Realistic timeline: **4-7 weeks**, mostly Meta-side waiting. Discord MVP is 1 week, no waiting, no approvals.
+
+### WhatsApp Flows — the wildcard
+
+Embedded forms inside the 1:1 chat. Multi-step RSVP form renders natively. Source: https://developers.facebook.com/docs/whatsapp/flows/
+
+Why it might work:
+- Group-level UX inside a 1:1 chat; the user never sees the constraint.
+- Lower template-approval burden once the Flow is approved.
+- Richer than buttons (dropdowns, multi-step, conditional logic).
+- Newer (2023); few competitors.
+
+Why it might not:
+- Still requires Meta Business verification.
+- Still 1:1, not in the group thread.
+- Flows tooling is thinner than the rest of the Cloud API.
+- No "send a Flow to a group" primitive.
+
+References: KLM, Vodafone India, Spotify (briefly) — customer-service Flows. Meta's own "appointment booking" demo Flow is structurally close to "RSVP to a gig".
+
+### Updated recommendation
+
+1. **Discord MVP first** in a worktree (1 week eng, no platform approvals).
+2. **Start Meta Business verification in parallel** — it's calendar time, not eng time. No commitment lost.
+3. **After Discord ships + verification clears**: WhatsApp 1:1 bot with the fan-out pattern, plus a Flow for the RSVP form. Reuses identity-link table, RSVP table, conversation state machine from Discord.
+4. **Never**: Messenger group bot. Audience isn't there, Meta restrictions tightening.
+
+## Section 6 — Open questions for the user
 
 - **Is there an actual Discord server today** where an arewegoing group already coordinates, or is the Discord bot still hypothetical?
 - **What is the target install ceiling for v1?** If we expect under 50 groups in the first six months, the share-link button is plainly enough.
