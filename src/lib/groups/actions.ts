@@ -177,6 +177,9 @@ export async function listMyGroups(): Promise<GroupWithCount[]> {
       anonOwnerId: groups.anonOwnerId,
       city: groups.city,
       createdAt: groups.createdAt,
+      creatorUserId: groups.creatorUserId,
+      creatorAnonId: groups.creatorAnonId,
+      pinnedEventId: groups.pinnedEventId,
       memberCount: sql<number>`count(${groupMembers.id})::int`,
     })
     .from(groups)

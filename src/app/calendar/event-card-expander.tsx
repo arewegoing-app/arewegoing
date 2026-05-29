@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { withRef } from '@/lib/outbound/with-ref';
 import { CalendarReactions } from './reactions-row';
+import { ShareEventButton } from '@/components/share-event-button';
 import { ClaimForm } from './claim-form';
 import { SeriesFollowButton } from './series-follow';
 import type { ClientEvent } from './client-filter';
@@ -229,9 +230,12 @@ export function EventCardExpander({
             <CalendarReactions eventId={event.id} />
           </div>
 
-          {/* Ticket link with ref */}
-          {event.ticketUrl && (
-            <div className="p-4 sm:p-5">
+          {/* Actions row: share + ticket link */}
+          <div className="flex flex-wrap items-center gap-3 p-4 sm:p-5">
+            <div onClick={(e) => e.stopPropagation()}>
+              <ShareEventButton eventId={event.id} eventTitle={event.title} />
+            </div>
+            {event.ticketUrl && (
               <a
                 href={withRef(event.ticketUrl)}
                 target="_blank"
@@ -242,8 +246,8 @@ export function EventCardExpander({
               >
                 ↳ Get tickets <span aria-hidden>↗</span>
               </a>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Event detail link */}
           <div className="border-t border-[color:var(--ed-line)] p-4 sm:p-5">

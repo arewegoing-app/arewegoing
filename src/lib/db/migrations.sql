@@ -349,3 +349,34 @@ create table if not exists host_votes (
 );
 create unique index if not exists host_votes_voter
   on host_votes(event_id, kind, voter_user_id, voter_anon_id) nulls not distinct;
+
+-- anon-groups-share: additive columns on groups
+do $$ begin
+  alter table groups add column if not exists creator_user_id text references users(id);
+exception when others then null; end $$;
+do $$ begin
+  alter table groups add column if not exists creator_anon_id text;
+exception when others then null; end $$;
+do $$ begin
+  alter table groups add column if not exists pinned_event_id text references events(id);
+exception when others then null; end $$;
+
+-- anon_profiles: keyed by the gigs_anon cookie value
+create table if not exists anon_profiles (
+  id text primary key,
+  emoji text,
+  display_name text,
+  created_at timestamp not null default now(),
+  merged_into_user_id text
+);
+
+-- group_events: events pinned into a share-group
+create table if not exists group_events (
+  id text primary key,
+  group_id text not null references groups(id) on delete cascade,
+  event_id text not null references events(id) on delete cascade,
+  added_by_user_id text references users(id),
+  added_by_anon_id text,
+  added_at timestamp not null default now()
+);
+create unique index if not exists group_events_group_event on group_events(group_id, event_id);
