@@ -76,8 +76,8 @@ test.describe('withRef() integration — outbound ticket links', () => {
   // import withRef() in src/app/e/[slug]/page.tsx and remove the fixme.
   // -------------------------------------------------------------------------
 
-  test.fixme(
-    '/e/[slug] — outbound link has ?ref=arewegoing (KNOWN GAP: page.tsx does not yet call withRef)',
+  test(
+    '/e/[slug] — outbound link has ?ref=arewegoing',
     async ({ page }) => {
       // Navigate to a known event detail page.
       // In dev this requires a seed event to exist with a known slug.

@@ -20,6 +20,7 @@ import {
 import { getReliabilityStats } from '@/lib/memory/stats';
 import { now } from '@/lib/time';
 import { listMyGroups } from '@/lib/groups/actions';
+import { withRef } from '@/lib/outbound/with-ref';
 import type { GroupWithCount } from '@/lib/groups/actions';
 import { PromoPanel } from './promo-panel';
 import { InviteForm } from './invite-form';
@@ -284,6 +285,19 @@ export default async function EventDetailPage({
             icsUrl={`/e/${event.slug}/ics`}
             showRefresh={!!(event.sourceUrl || event.ticketUrl)}
           />
+          {event.ticketUrl && (
+            <a
+              href={withRef(event.ticketUrl)}
+              target="_blank"
+              rel="noreferrer"
+              data-testid="event-detail-ticket-link"
+              className="ed-chip u-mono"
+              style={{ minHeight: '44px' }}
+              aria-label={`Get tickets for ${event.title} (opens in new tab)`}
+            >
+              Get tickets <span aria-hidden>↗</span>
+            </a>
+          )}
         </div>
       </header>
 
