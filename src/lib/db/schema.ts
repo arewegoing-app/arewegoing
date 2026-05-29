@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, pgEnum, uniqueIndex, jsonb } from 'drizzle-orm/pg-core';
 import { nanoid } from 'nanoid';
 
 const id = () => text('id').primaryKey().$defaultFn(() => nanoid());
@@ -46,8 +46,38 @@ export const events = pgTable('events', {
   publicInviteToken: text('public_invite_token'),
   discoveredAt: timestamp('discovered_at'),
   seriesName: text('series_name'),
+  /**
+   * Optional enrichment metadata populated by ingestion or admin tooling.
+   * Stays JSONB so we can add fields without a migration. Shape:
+   *   {
+   *     genre?: string,
+   *     lineup?: string[],         // DJs, bands, support acts
+   *     venueAddress?: string,
+   *     venueSocial?: {
+   *       instagram?: string,
+   *       facebook?: string,
+   *       website?: string,
+   *     },
+   *     doorsOpen?: string,         // 'HH:MM' local time
+   *     doorsClose?: string,
+   *   }
+   */
+  metadata: jsonb('metadata').$type<EventMetadata>(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+export type EventMetadata = {
+  genre?: string;
+  lineup?: string[];
+  venueAddress?: string;
+  venueSocial?: {
+    instagram?: string;
+    facebook?: string;
+    website?: string;
+  };
+  doorsOpen?: string;
+  doorsClose?: string;
+};
 
 export const reactionKindEnum = pgEnum('reaction_kind', [
   'interested',

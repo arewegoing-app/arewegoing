@@ -8,6 +8,8 @@ import { listPublicEvents } from '@/lib/discovery/list-public-events';
 import { auth } from '@/lib/auth/auth';
 import { AnonProfilePrompt } from './anon-profile-prompt';
 import { AddEventButton } from './add-event';
+import { CalendarReactions } from '@/app/calendar/reactions-row';
+import { withRef } from '@/lib/outbound/with-ref';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,7 +104,7 @@ export default async function GroupCalendarPage({ params }: Props) {
             </div>
             {pinnedEvent.ticketUrl && (
               <a
-                href={pinnedEvent.ticketUrl}
+                href={withRef(pinnedEvent.ticketUrl)}
                 target="_blank"
                 rel="noreferrer"
                 className="u-mono mt-2 inline-flex items-center gap-1 hover:text-[color:var(--ed-accent-2)]"
@@ -111,6 +113,9 @@ export default async function GroupCalendarPage({ params }: Props) {
                 ↳ Get tickets <span aria-hidden>↗</span>
               </a>
             )}
+            <div className="mt-4 border-t border-[color:var(--ed-line)] pt-4">
+              <CalendarReactions eventId={pinnedEvent.id} />
+            </div>
           </div>
         </section>
       )}
@@ -139,6 +144,9 @@ export default async function GroupCalendarPage({ params }: Props) {
                           timeZone: 'Pacific/Auckland',
                         })}`
                       : ''}
+                  </div>
+                  <div className="mt-3 border-t border-[color:var(--ed-line)] pt-3">
+                    <CalendarReactions eventId={ge.event.id} />
                   </div>
                 </li>
               ))}

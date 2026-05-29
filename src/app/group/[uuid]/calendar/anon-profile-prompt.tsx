@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { setAnonProfile } from '@/lib/anon/profiles';
+import { setMyAnonProfile } from '@/lib/anon/profiles';
 
 /**
  * Lightweight popover that lets an anon visitor pick an emoji + display name.
@@ -15,9 +15,14 @@ export function AnonProfilePrompt() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    await setAnonProfile('__cookie__', { emoji: emoji || undefined, displayName: name || undefined });
-    setSaved(true);
-    setOpen(false);
+    const result = await setMyAnonProfile({
+      emoji: emoji || undefined,
+      displayName: name || undefined,
+    });
+    if (result.ok) {
+      setSaved(true);
+      setOpen(false);
+    }
   }
 
   if (saved) return null;

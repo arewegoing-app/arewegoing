@@ -380,3 +380,6 @@ create table if not exists group_events (
   added_at timestamp not null default now()
 );
 create unique index if not exists group_events_group_event on group_events(group_id, event_id);
+
+-- Optional enrichment metadata on events (jsonb so extra fields don't need migrations).
+alter table events add column if not exists metadata jsonb;

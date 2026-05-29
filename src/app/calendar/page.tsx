@@ -145,8 +145,11 @@ export default async function CalendarPage({
     anonOwnerId: e.anonOwnerId,
     priceLow: e.priceLow,
     priceHigh: e.priceHigh,
+    city: e.city,
+    metadata: e.metadata,
     // Dates cross server/client boundary as Date objects (Next.js serializes them).
     startsAt: e.startsAt,
+    onSaleAt: e.onSaleAt,
   }));
 
   const talliesRecord = Object.fromEntries(tallies.entries());

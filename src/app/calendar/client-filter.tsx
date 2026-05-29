@@ -28,6 +28,20 @@ export type ClientEvent = FilterableEvent & {
   anonOwnerId: string | null;
   priceLow: number | null;
   priceHigh: number | null;
+  city: string | null;
+  onSaleAt: Date | string | null;
+  metadata: {
+    genre?: string;
+    lineup?: string[];
+    venueAddress?: string;
+    venueSocial?: {
+      instagram?: string;
+      facebook?: string;
+      website?: string;
+    };
+    doorsOpen?: string;
+    doorsClose?: string;
+  } | null;
 };
 
 type Tally = {
@@ -56,6 +70,12 @@ type ClientFilterProps = {
   initialFilter: FilterState;
   /** Total count as counted on the server for the header. */
   totalServerCount: number;
+  /**
+   * 'public' (default) = /calendar surface. Cards do NOT render reactions
+   *                      (no Interested / I'm down / I'll buy 1 controls).
+   * 'group'            = /group/[uuid]/calendar surface. Reactions render.
+   */
+  mode?: 'public' | 'group';
 };
 
 /**
@@ -71,6 +91,7 @@ export function ClientFilter({
   venues,
   initialFilter,
   totalServerCount,
+  mode = 'public',
 }: ClientFilterProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -290,6 +311,7 @@ export function ClientFilter({
           setExpandedId((prev) => (prev === id ? null : id))
         }
         hasFilters={hasFilters}
+        mode={mode}
       />
     </>
   );
@@ -304,6 +326,7 @@ function ClientEventList({
   expandedId,
   onToggleExpand,
   hasFilters,
+  mode,
 }: {
   events: ClientEvent[];
   tallies: Record<string, Tally>;
@@ -312,6 +335,7 @@ function ClientEventList({
   expandedId: string | null;
   onToggleExpand: (id: string) => void;
   hasFilters: boolean;
+  mode: 'public' | 'group';
 }) {
   const dated = events.filter((e) => e.startsAt !== null);
   const tbd = events.filter((e) => e.startsAt === null);
@@ -378,6 +402,7 @@ function ClientEventList({
                 indexLabel={String(gi * 100 + i + 1).padStart(eventNumPadding, '0')}
                 isExpanded={expandedId === e.id}
                 onToggleExpand={onToggleExpand}
+                mode={mode}
               />
             ))}
           </ul>
@@ -403,6 +428,7 @@ function ClientEventList({
                 indexLabel={`T·${String(i + 1).padStart(2, '0')}`}
                 isExpanded={expandedId === e.id}
                 onToggleExpand={onToggleExpand}
+                mode={mode}
               />
             ))}
           </ul>

@@ -47,6 +47,14 @@ type EventCardExpanderProps = {
   indexLabel: string;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
+  /**
+   * 'public' = /calendar surface. Read-only event info. Expanded view shows
+   *            more details (lineup, venue, ticket link). NO RSVP / reaction
+   *            controls. Share button stays so viewers can spin up a group.
+   * 'group'  = /group/[uuid]/calendar surface. Same details + RSVP, claim,
+   *            and rally controls. The group is the unit of coordination.
+   */
+  mode?: 'public' | 'group';
 };
 
 /**
@@ -65,7 +73,9 @@ export function EventCardExpander({
   indexLabel,
   isExpanded,
   onToggleExpand,
+  mode = 'public',
 }: EventCardExpanderProps) {
+  const isGroup = mode === 'group';
   const t = tally ?? ZERO_TALLY;
   const downCount = t.down + t.pledge_1 + t.pledge_2 + t.have_ticket;
   const unclaimed = !event.ownerUserId && !event.anonOwnerId;
@@ -225,45 +235,149 @@ export function EventCardExpander({
             maxWidth: '100%',
           }}
         >
-          {/* Reactions row */}
-          <div className="border-b border-[color:var(--ed-line)] p-4 sm:p-5">
-            <CalendarReactions eventId={event.id} />
+          {/* Reactions row — group mode only. Public surface is read-only. */}
+          {isGroup && (
+            <div className="border-b border-[color:var(--ed-line)] p-4 sm:p-5">
+              <CalendarReactions eventId={event.id} />
+            </div>
+          )}
+
+          {/* Extra event detail — venue, address, series, lineup, genre,
+              doors, on-sale, price band, social links. Buy URL is NOT
+              rendered in the expanded panel — it stays as the small ticket
+              source link in the collapsed footer. */}
+          <div
+            className="flex flex-col gap-2 border-b border-[color:var(--ed-line)] p-4 sm:p-5"
+            style={{ color: 'var(--ed-fg-soft)' }}
+          >
+            {event.venue && (
+              <div className="u-mono">
+                <span aria-hidden>▪ Venue · </span>
+                <span style={{ color: 'var(--ed-fg)' }}>{event.venue}</span>
+                {event.city && <span> · {event.city}</span>}
+              </div>
+            )}
+            {event.metadata?.venueAddress && (
+              <div className="u-mono">
+                <span aria-hidden>▪ Address · </span>
+                {event.metadata.venueAddress}
+              </div>
+            )}
+            {event.metadata?.genre && (
+              <div className="u-mono">
+                <span aria-hidden>▪ Genre · </span>
+                <span style={{ color: 'var(--ed-fg)' }}>{event.metadata.genre}</span>
+              </div>
+            )}
+            {event.metadata?.lineup && event.metadata.lineup.length > 0 && (
+              <div className="u-mono">
+                <span aria-hidden>▪ Lineup · </span>
+                <span style={{ color: 'var(--ed-fg)' }}>
+                  {event.metadata.lineup.join(', ')}
+                </span>
+              </div>
+            )}
+            {event.seriesName && (
+              <div className="u-mono">
+                <span aria-hidden>▪ Series · </span>
+                <span style={{ color: 'var(--ed-fg)' }}>{event.seriesName}</span>
+              </div>
+            )}
+            {(event.metadata?.doorsOpen || event.metadata?.doorsClose) && (
+              <div className="u-mono">
+                <span aria-hidden>▪ Doors · </span>
+                {event.metadata?.doorsOpen ?? 'open ?'}
+                {event.metadata?.doorsClose && ` → ${event.metadata.doorsClose}`}
+              </div>
+            )}
+            {event.onSaleAt && (
+              <div className="u-mono">
+                <span aria-hidden>▪ On sale · </span>
+                {new Date(event.onSaleAt).toLocaleString('en-NZ', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  timeZone: 'Pacific/Auckland',
+                })}
+              </div>
+            )}
+            {(event.priceLow != null || event.priceHigh != null) && (
+              <div className="u-mono">
+                <span aria-hidden>▪ Price · </span>
+                {event.priceLow != null && event.priceHigh != null && event.priceLow !== event.priceHigh
+                  ? `$${event.priceLow}–$${event.priceHigh}`
+                  : `$${event.priceLow ?? event.priceHigh}`}
+              </div>
+            )}
+            {event.metadata?.venueSocial && (
+              <div className="u-mono flex flex-wrap gap-3">
+                <span aria-hidden>▪ Venue · </span>
+                {event.metadata.venueSocial.website && (
+                  <a
+                    href={event.metadata.venueSocial.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-[color:var(--ed-fg)]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    web ↗
+                  </a>
+                )}
+                {event.metadata.venueSocial.instagram && (
+                  <a
+                    href={event.metadata.venueSocial.instagram}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-[color:var(--ed-fg)]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    instagram ↗
+                  </a>
+                )}
+                {event.metadata.venueSocial.facebook && (
+                  <a
+                    href={event.metadata.venueSocial.facebook}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-[color:var(--ed-fg)]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    facebook ↗
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Actions row: share + ticket link */}
+          {/* Actions row: share button only. Ticket link is hidden inside
+              the expanded panel per the spec — buy URL lives in the
+              collapsed footer for both modes. */}
           <div className="flex flex-wrap items-center gap-3 p-4 sm:p-5">
             <div onClick={(e) => e.stopPropagation()}>
               <ShareEventButton eventId={event.id} eventTitle={event.title} />
             </div>
-            {event.ticketUrl && (
-              <a
-                href={withRef(event.ticketUrl)}
-                target="_blank"
-                rel="noreferrer"
-                className="u-mono inline-flex items-center gap-1 hover:text-[color:var(--ed-accent-2)]"
-                style={{ color: 'var(--ed-fg-soft)' }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                ↳ Get tickets <span aria-hidden>↗</span>
-              </a>
-            )}
           </div>
 
-          {/* Event detail link */}
-          <div className="border-t border-[color:var(--ed-line)] p-4 sm:p-5">
-            <Link
-              href={`/e/${event.slug}`}
-              className="u-mono inline-flex items-center gap-1 hover:text-[color:var(--ed-accent-2)]"
-              style={{ color: 'var(--ed-fg-soft)' }}
-            >
-              ↳ Event page <span aria-hidden>→</span>
-            </Link>
-          </div>
+          {/* Event detail link — only on group surface (public detail page
+              is being scoped behind /group/[uuid]/e/[slug] in a follow-up). */}
+          {isGroup && (
+            <div className="border-t border-[color:var(--ed-line)] p-4 sm:p-5">
+              <Link
+                href={`/e/${event.slug}`}
+                className="u-mono inline-flex items-center gap-1 hover:text-[color:var(--ed-accent-2)]"
+                style={{ color: 'var(--ed-fg-soft)' }}
+              >
+                ↳ Event page <span aria-hidden>→</span>
+              </Link>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Collapsed: reactions row below the card body */}
-      {!isExpanded && (
+      {/* Collapsed: reactions row below the card body — group mode only */}
+      {!isExpanded && isGroup && (
         <div className="border-t border-[color:var(--ed-line)] p-4 sm:p-5">
           <CalendarReactions eventId={event.id} />
         </div>
